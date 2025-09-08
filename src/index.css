@@ -2,39 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Barter Exchange Platform Design System - Modern marketplace aesthetic */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors */
+    --background: 0 0% 99%;
+    --foreground: 215 20% 12%;
 
+    /* Card components */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 20% 12%;
 
+    /* Popover components */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 20% 12%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary brand - Teal for trust and exchange */
+    --primary: 175 60% 45%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 175 55% 55%;
+    --primary-dark: 175 65% 35%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Warm slate */
+    --secondary: 215 15% 95%;
+    --secondary-foreground: 215 20% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted elements */
+    --muted: 215 10% 96%;
+    --muted-foreground: 215 12% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Warm orange for actions */
+    --accent: 25 85% 60%;
+    --accent-foreground: 0 0% 98%;
+    --accent-light: 25 80% 70%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Status colors */
+    --success: 145 65% 45%;
+    --success-foreground: 0 0% 98%;
+    --warning: 45 90% 55%;
+    --warning-foreground: 215 20% 12%;
+    --destructive: 355 75% 55%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Border and inputs */
+    --border: 215 15% 88%;
+    --input: 215 15% 92%;
+    --ring: 175 60% 45%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(175 60% 45%), hsl(175 55% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(175 60% 45%), hsl(195 70% 50%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(215 10% 98%));
+    
+    /* Shadows */
+    --shadow-card: 0 2px 8px -2px hsl(215 20% 12% / 0.08);
+    --shadow-card-hover: 0 4px 16px -4px hsl(215 20% 12% / 0.12);
+    --shadow-hero: 0 20px 60px -12px hsl(175 60% 45% / 0.25);
 
     --radius: 0.5rem;
 
@@ -56,33 +80,59 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Base colors - Dark mode */
+    --background: 215 25% 8%;
+    --foreground: 215 10% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    /* Card components */
+    --card: 215 22% 10%;
+    --card-foreground: 215 10% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    /* Popover components */
+    --popover: 215 22% 10%;
+    --popover-foreground: 215 10% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary brand - Lighter teal for dark mode */
+    --primary: 175 55% 55%;
+    --primary-foreground: 215 25% 8%;
+    --primary-light: 175 50% 65%;
+    --primary-dark: 175 60% 45%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary - Dark slate */
+    --secondary: 215 20% 15%;
+    --secondary-foreground: 215 10% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Muted elements */
+    --muted: 215 18% 12%;
+    --muted-foreground: 215 12% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Accent - Warm orange adjusted for dark */
+    --accent: 25 80% 65%;
+    --accent-foreground: 215 25% 8%;
+    --accent-light: 25 75% 75%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Status colors - Dark mode adjusted */
+    --success: 145 60% 50%;
+    --success-foreground: 215 25% 8%;
+    --warning: 45 85% 60%;
+    --warning-foreground: 215 25% 8%;
+    --destructive: 355 70% 60%;
+    --destructive-foreground: 215 10% 92%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Border and inputs */
+    --border: 215 20% 18%;
+    --input: 215 18% 15%;
+    --ring: 175 55% 55%;
+
+    /* Gradients - Dark mode */
+    --gradient-primary: linear-gradient(135deg, hsl(175 55% 55%), hsl(175 50% 65%));
+    --gradient-hero: linear-gradient(135deg, hsl(175 55% 55%), hsl(195 65% 55%));
+    --gradient-card: linear-gradient(180deg, hsl(215 22% 10%), hsl(215 18% 12%));
+    
+    /* Shadows - Adjusted for dark mode */
+    --shadow-card: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
+    --shadow-card-hover: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+    --shadow-hero: 0 20px 60px -12px hsl(175 55% 55% / 0.3);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
