@@ -29,9 +29,12 @@ const Navbar = () => {
 
           {/* Navigation Actions */}
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="hidden md:flex">
-              <Bell className="w-4 h-4" />
-            </Button>
+            
+            <Link to="/notifications">
+              <Button variant="ghost" size="sm" className="hidden md:flex">
+                <Bell className="w-4 h-4" />
+              </Button>
+            </Link>
             
             <Link to="/list-item">
               <Button variant="accent" size="sm">
@@ -40,10 +43,13 @@ const Navbar = () => {
               </Button>
             </Link>
 
-            <Button variant="outline" size="sm">
-              <User className="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
+            <Link to="/dashboard">
+              <Button variant="outline" size="sm">
+                <User className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
+
           </div>
         </div>
 
