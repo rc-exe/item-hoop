@@ -10,6 +10,8 @@ import ListItem from "./pages/ListItem";
 import Notifications from "./pages/Notifications";
 import ItemDetail from "./pages/ItemDetail";
 import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/item/:id" element={<ItemDetail />} />
           <Route path="/profile/:username?" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

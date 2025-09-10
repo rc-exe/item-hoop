@@ -43,10 +43,15 @@ const Navbar = () => {
               </Button>
             </Link>
 
-            <Link to="/dashboard">
+            <Link to="/login">
+              <Button variant="ghost" size="sm">
+                Sign In
+              </Button>
+            </Link>
+
+            <Link to="/register">
               <Button variant="outline" size="sm">
-                <User className="w-4 h-4 mr-2" />
-                Dashboard
+                Sign Up
               </Button>
             </Link>
 

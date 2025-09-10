@@ -37,7 +37,11 @@ const CategorySection = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
           {categories.map((category) => (
-            <Card key={category.name} className="group hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border/50">
+            <Card 
+              key={category.name} 
+              className="group hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border/50"
+              onClick={() => window.location.href = `/browse?category=${category.name.toLowerCase()}`}
+            >
               <CardContent className="p-6 text-center">
                 <div className="mb-4">
                   <category.icon className={`w-8 h-8 mx-auto ${category.color} group-hover:scale-110 transition-transform duration-200`} />

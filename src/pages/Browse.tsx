@@ -1,3 +1,5 @@
+import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -81,6 +83,45 @@ const mockItems = [
 ];
 
 const Browse = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+
+  // Filter and sort items
+  const filteredItems = useMemo(() => {
+    let filtered = mockItems.filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || 
+                             item.category.toLowerCase() === selectedCategory.toLowerCase();
+      return matchesSearch && matchesCategory;
+    });
+
+    // Sort items
+    switch (sortBy) {
+      case "oldest":
+        return filtered.reverse();
+      case "distance":
+        // In real app, would sort by actual distance
+        return filtered;
+      case "popular":
+        return filtered.sort((a, b) => b.user.exchanges - a.user.exchanges);
+      default:
+        return filtered;
+    }
+  }, [searchTerm, selectedCategory, selectedLocation, sortBy]);
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    if (category === "all") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -102,9 +143,11 @@ const Browse = () => {
             <Input 
               placeholder="Search for items..." 
               className="lg:max-w-md"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
             
-            <Select>
+            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
               <SelectTrigger className="lg:w-48">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -115,10 +158,13 @@ const Browse = () => {
                 <SelectItem value="music">Music</SelectItem>
                 <SelectItem value="clothing">Clothing</SelectItem>
                 <SelectItem value="home">Home & Garden</SelectItem>
+                <SelectItem value="gaming">Gaming</SelectItem>
+                <SelectItem value="computers">Computers</SelectItem>
+                <SelectItem value="sports">Sports</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger className="lg:w-48">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
@@ -143,7 +189,7 @@ const Browse = () => {
               Showing {mockItems.length} items
             </p>
             
-            <Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Sort by: Newest" />
               </SelectTrigger>
@@ -159,7 +205,7 @@ const Browse = () => {
 
         {/* Items Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {mockItems.map((item) => (
+          {filteredItems.map((item) => (
             <Card key={item.id} className="group hover:shadow-card-hover transition-all duration-300 overflow-hidden border-border/50">
               <CardHeader className="p-0 relative">
                 <div className="aspect-square overflow-hidden">
