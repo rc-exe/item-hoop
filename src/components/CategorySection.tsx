@@ -10,6 +10,8 @@ import {
   Laptop,
   Dumbbell 
 } from "lucide-react";
+import { FadeInUp } from "./ScrollAnimations";
+import { motion } from "framer-motion";
 
 const categories = [
   { name: "Books", icon: BookOpen, count: "2,341", color: "text-blue-600" },
@@ -26,38 +28,52 @@ const CategorySection = () => {
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+        <FadeInUp className="text-center mb-12">
+          <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
             Browse by Category
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
             Discover thousands of items available for exchange across popular categories
           </p>
-        </div>
+        </FadeInUp>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
-          {categories.map((category) => (
-            <Card 
-              key={category.name} 
-              className="group hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border/50"
-              onClick={() => window.location.href = `/browse?category=${category.name.toLowerCase()}`}
-            >
-              <CardContent className="p-6 text-center">
-                <div className="mb-4">
-                  <category.icon className={`w-8 h-8 mx-auto ${category.color} group-hover:scale-110 transition-transform duration-200`} />
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{category.name}</h3>
-                <p className="text-sm text-muted-foreground">{category.count} items</p>
-              </CardContent>
-            </Card>
+          {categories.map((category, index) => (
+            <FadeInUp key={category.name} delay={index * 0.1}>
+              <motion.div
+                whileHover={{ y: -5, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => window.location.href = `/browse?category=${category.name.toLowerCase()}`}
+              >
+                <Card className="group hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border/50 h-full">
+                  <CardContent className="p-6 text-center">
+                    <div className="mb-4">
+                      <motion.div
+                        whileHover={{ rotate: 5 }}
+                        className="inline-block"
+                      >
+                        <category.icon className={`w-8 h-8 mx-auto ${category.color} group-hover:scale-110 transition-transform duration-200`} />
+                      </motion.div>
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-1 font-sans">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground font-sans">{category.count} items</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </FadeInUp>
           ))}
         </div>
 
-        <div className="text-center mt-8">
-          <Button variant="outline" size="lg">
-            View All Categories
-          </Button>
-        </div>
+        <FadeInUp delay={0.3} className="text-center mt-8">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button variant="outline" size="lg" className="font-medium">
+              View All Categories
+            </Button>
+          </motion.div>
+        </FadeInUp>
       </div>
     </section>
   );

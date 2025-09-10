@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin, Clock } from "lucide-react";
+import { FadeInUp } from "./ScrollAnimations";
+import { motion } from "framer-motion";
 import cameraImage from "@/assets/sample-camera.jpg";
 import booksImage from "@/assets/sample-books.jpg";
 import guitarImage from "@/assets/sample-guitar.jpg";
@@ -58,33 +60,45 @@ const FeaturedItems = () => {
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+        <FadeInUp className="text-center mb-12">
+          <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
             Featured Items
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
             Check out these amazing items available for exchange right now
           </p>
-        </div>
+        </FadeInUp>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredItems.map((item) => (
-            <Card key={item.id} className="group hover:shadow-card-hover transition-all duration-300 overflow-hidden border-border/50">
+          {featuredItems.map((item, index) => (
+            <FadeInUp key={item.id} delay={index * 0.1}>
+              <motion.div
+                whileHover={{ y: -5 }}
+                className="h-full"
+              >
+                <Card className="group hover:shadow-card-hover transition-all duration-300 overflow-hidden border-border/50 h-full">
               <CardHeader className="p-0 relative">
                 <div className="aspect-square overflow-hidden">
-                  <img
+                  <motion.img
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.3 }}
                     src={item.image}
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                   />
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                 >
-                  <Heart className="w-4 h-4" />
-                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Button>
+                </motion.div>
                 <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
                   {item.category}
                 </Badge>
@@ -134,19 +148,32 @@ const FeaturedItems = () => {
               </CardContent>
 
               <CardFooter className="p-6 pt-0">
-                <Button className="w-full" variant="default">
-                  Request Exchange
-                </Button>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full"
+                >
+                  <Button className="w-full font-medium" variant="default">
+                    Request Exchange
+                  </Button>
+                </motion.div>
               </CardFooter>
-            </Card>
+                </Card>
+              </motion.div>
+            </FadeInUp>
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <Button variant="outline" size="lg">
-            View All Items
-          </Button>
-        </div>
+        <FadeInUp delay={0.3} className="text-center mt-12">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button variant="outline" size="lg" className="font-medium">
+              View All Items
+            </Button>
+          </motion.div>
+        </FadeInUp>
       </div>
     </section>
   );
