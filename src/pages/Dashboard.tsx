@@ -54,7 +54,7 @@ const Dashboard = () => {
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
+          <h1 className="hero-title text-3xl text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Manage your items and exchanges</p>
         </div>
 
@@ -114,7 +114,7 @@ const Dashboard = () => {
 
           <TabsContent value="items" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Your Listed Items</h2>
+              <h2 className="section-title text-xl">Your Listed Items</h2>
               <Link to="/list-item">
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />

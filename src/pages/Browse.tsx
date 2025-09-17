@@ -129,7 +129,7 @@ const Browse = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+          <h1 className="hero-title text-3xl lg:text-4xl text-foreground mb-4">
             Browse Items
           </h1>
           <p className="text-lg text-muted-foreground">

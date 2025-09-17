@@ -114,7 +114,7 @@ const Profile = () => {
                 </Avatar>
                 
                 <div className="text-center md:text-left">
-                  <h1 className="text-2xl font-bold mb-1">{mockUser.name}</h1>
+                  <h1 className="hero-title text-2xl mb-1">{mockUser.name}</h1>
                   <p className="text-muted-foreground mb-2">{mockUser.username}</p>
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
