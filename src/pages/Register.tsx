@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Mail, User, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Register = () => {
@@ -19,7 +20,8 @@ const Register = () => {
     confirmPassword: "",
     agreeToTerms: false
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const { signUp, signInWithGoogle, loading } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -47,31 +49,25 @@ const Register = () => {
       return;
     }
 
-    setIsLoading(true);
+    const { error } = await signUp(formData.email, formData.password, {
+      full_name: formData.name,
+    });
 
-    // Simulate registration process
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Account Created!",
-        description: "Welcome to BarterHub. Please check your email to verify your account.",
-      });
-      // Here you would normally redirect to verification page or login
-    }, 2000);
+    if (!error) {
+      navigate("/login");
+    }
   };
 
-  const handleGoogleRegister = () => {
-    toast({
-      title: "Google Registration",
-      description: "Google authentication will be integrated soon",
-    });
+  const handleGoogleRegister = async () => {
+    await signInWithGoogle();
+    // Note: Google OAuth will redirect automatically
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Join BarterHub</h1>
+          <h1 className="hero-title text-3xl text-foreground mb-2">Join BarterHub</h1>
           <p className="text-muted-foreground">Create your account and start exchanging</p>
         </div>
 
@@ -89,6 +85,7 @@ const Register = () => {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleRegister}
+              disabled={loading}
             >
               <Mail className="w-4 h-4 mr-2" />
               Continue with Google
@@ -115,6 +112,7 @@ const Register = () => {
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     required
+                    disabled={loading}
                   />
                   <User className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -130,6 +128,7 @@ const Register = () => {
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
                     required
+                    disabled={loading}
                   />
                   <Mail className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -145,6 +144,7 @@ const Register = () => {
                     value={formData.password}
                     onChange={(e) => handleChange("password", e.target.value)}
                     required
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -152,6 +152,7 @@ const Register = () => {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -172,6 +173,7 @@ const Register = () => {
                     value={formData.confirmPassword}
                     onChange={(e) => handleChange("confirmPassword", e.target.value)}
                     required
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -179,6 +181,7 @@ const Register = () => {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -194,6 +197,7 @@ const Register = () => {
                   id="terms"
                   checked={formData.agreeToTerms}
                   onCheckedChange={(checked) => handleChange("agreeToTerms", checked as boolean)}
+                  disabled={loading}
                 />
                 <label
                   htmlFor="terms"
@@ -210,8 +214,15 @@ const Register = () => {
                 </label>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
           </CardContent>
