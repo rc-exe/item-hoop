@@ -1,7 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, Profile } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Profile type definition
+interface Profile {
+  id: string;
+  username?: string;
+  full_name?: string;
+  bio?: string;
+  avatar_url?: string;
+  location?: string;
+  phone?: string;
+  website?: string;
+  rating: number;
+  total_exchanges: number;
+  response_time_hours: number;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AuthContextType {
   user: User | null;
