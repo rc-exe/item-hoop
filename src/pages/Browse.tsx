@@ -271,8 +271,8 @@ const Browse = () => {
               </CardContent>
 
               <CardFooter className="p-6 pt-0">
-                <Button className="w-full" variant="default">
-                  Request Exchange
+                <Button className="w-full" variant="default" asChild>
+                  <a href={`/item/${item.id}`}>View Details</a>
                 </Button>
               </CardFooter>
             </Card>
