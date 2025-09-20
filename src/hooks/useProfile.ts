@@ -1,0 +1,233 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  location: string | null;
+  phone: string | null;
+  website: string | null;
+  is_verified: boolean;
+  rating: number;
+  total_exchanges: number;
+  response_time_hours: number;
+  created_at: string;
+}
+
+export interface UserItem {
+  id: string;
+  title: string;
+  description: string | null;
+  condition: string | null;
+  estimated_value: number | null;
+  status: 'available' | 'exchanged' | 'pending_exchange' | 'removed';
+  images: string[];
+  views_count: number;
+  is_featured: boolean;
+  created_at: string;
+  category: {
+    name: string;
+    icon: string | null;
+  } | null;
+}
+
+export interface UserActivity {
+  id: string;
+  type: 'item_listed' | 'exchange_completed' | 'review_received' | 'exchange_requested';
+  title: string;
+  description: string;
+  created_at: string;
+  related_id: string | null;
+}
+
+export const useProfile = (userId?: string) => {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [items, setItems] = useState<UserItem[]>([]);
+  const [activity, setActivity] = useState<UserActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const targetUserId = userId || user?.id;
+
+  useEffect(() => {
+    if (targetUserId) {
+      fetchProfile();
+      fetchUserItems();
+      fetchUserActivity();
+    }
+  }, [targetUserId]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', targetUserId)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch profile');
+    }
+  };
+
+  const fetchUserItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          id,
+          title,
+          description,
+          condition,
+          estimated_value,
+          status,
+          images,
+          views_count,
+          is_featured,
+          created_at,
+          categories:category_id (
+            name,
+            icon
+          )
+        `)
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const formattedItems: UserItem[] = data.map(item => ({
+        ...item,
+        category: item.categories || null
+      }));
+      
+      setItems(formattedItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch items');
+    }
+  };
+
+  const fetchUserActivity = async () => {
+    try {
+      setLoading(true);
+      
+      // Get recent items listed
+      const { data: recentItems } = await supabase
+        .from('items')
+        .select('id, title, created_at')
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Get recent exchanges
+      const { data: recentExchanges } = await supabase
+        .from('exchanges')
+        .select(`
+          id,
+          status,
+          created_at,
+          updated_at,
+          requester_id,
+          owner_id,
+          owner_items:owner_item_id (title),
+          requester_items:requester_item_id (title)
+        `)
+        .or(`requester_id.eq.${targetUserId},owner_id.eq.${targetUserId}`)
+        .eq('status', 'completed')
+        .order('updated_at', { ascending: false })
+        .limit(3);
+
+      // Get recent ratings
+      const { data: recentRatings } = await supabase
+        .from('exchange_ratings')
+        .select(`
+          id,
+          rating,
+          comment,
+          created_at,
+          exchanges:exchange_id (
+            requester_id,
+            owner_id,
+            owner_items:owner_item_id (title)
+          )
+        `)
+        .eq('rated_id', targetUserId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      // Format activity data
+      const activities: UserActivity[] = [];
+
+      // Add item listings
+      recentItems?.forEach(item => {
+        activities.push({
+          id: `item_${item.id}`,
+          type: 'item_listed',
+          title: `Listed new item: ${item.title}`,
+          description: 'New item available for exchange',
+          created_at: item.created_at,
+          related_id: item.id
+        });
+      });
+
+      // Add completed exchanges
+      recentExchanges?.forEach((exchange: any) => {
+        const isRequester = exchange.requester_id === targetUserId;
+        const itemTitle = exchange.owner_items?.title || exchange.requester_items?.title || 'Unknown item';
+        
+        activities.push({
+          id: `exchange_${exchange.id}`,
+          type: 'exchange_completed',
+          title: `Completed exchange${isRequester ? ' as requester' : ' as owner'}`,
+          description: `Exchange involving: ${itemTitle}`,
+          created_at: exchange.updated_at,
+          related_id: exchange.id
+        });
+      });
+
+      // Add received reviews
+      recentRatings?.forEach((rating: any) => {
+        activities.push({
+          id: `review_${rating.id}`,
+          type: 'review_received',
+          title: `Received ${rating.rating}-star review`,
+          description: rating.comment || 'No comment provided',
+          created_at: rating.created_at,
+          related_id: rating.id
+        });
+      });
+
+      // Sort all activities by date
+      activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setActivity(activities.slice(0, 10)); // Limit to 10 most recent
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch activity');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshData = () => {
+    if (targetUserId) {
+      fetchProfile();
+      fetchUserItems();
+      fetchUserActivity();
+    }
+  };
+
+  return {
+    profile,
+    items,
+    activity,
+    loading,
+    error,
+    refreshData
+  };
+};
