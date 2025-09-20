@@ -14,6 +14,266 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exchange_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          exchange_id: string
+          id: string
+          rated_id: string
+          rater_id: string
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          exchange_id: string
+          id?: string
+          rated_id: string
+          rater_id: string
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          exchange_id?: string
+          id?: string
+          rated_id?: string
+          rater_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_ratings_exchange_id_fkey"
+            columns: ["exchange_id"]
+            isOneToOne: false
+            referencedRelation: "exchanges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_ratings_rated_id_fkey"
+            columns: ["rated_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_ratings_rater_id_fkey"
+            columns: ["rater_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchanges: {
+        Row: {
+          completion_notes: string | null
+          created_at: string
+          id: string
+          meeting_location: string | null
+          meeting_time: string | null
+          message: string | null
+          owner_id: string
+          owner_item_id: string
+          requester_id: string
+          requester_item_id: string | null
+          status: Database["public"]["Enums"]["exchange_status"]
+          updated_at: string
+        }
+        Insert: {
+          completion_notes?: string | null
+          created_at?: string
+          id?: string
+          meeting_location?: string | null
+          meeting_time?: string | null
+          message?: string | null
+          owner_id: string
+          owner_item_id: string
+          requester_id: string
+          requester_item_id?: string | null
+          status?: Database["public"]["Enums"]["exchange_status"]
+          updated_at?: string
+        }
+        Update: {
+          completion_notes?: string | null
+          created_at?: string
+          id?: string
+          meeting_location?: string | null
+          meeting_time?: string | null
+          message?: string | null
+          owner_id?: string
+          owner_item_id?: string
+          requester_id?: string
+          requester_item_id?: string | null
+          status?: Database["public"]["Enums"]["exchange_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchanges_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchanges_owner_item_id_fkey"
+            columns: ["owner_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchanges_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchanges_requester_item_id_fkey"
+            columns: ["requester_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          category_id: string | null
+          condition: string | null
+          created_at: string
+          description: string | null
+          estimated_value: number | null
+          id: string
+          images: string[] | null
+          is_featured: boolean | null
+          location: string | null
+          status: Database["public"]["Enums"]["item_status"]
+          title: string
+          updated_at: string
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          condition?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_value?: number | null
+          id?: string
+          images?: string[] | null
+          is_featured?: boolean | null
+          location?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          condition?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_value?: number | null
+          id?: string
+          images?: string[] | null
+          is_featured?: boolean | null
+          location?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          related_id: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          related_id?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          related_id?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -73,7 +333,21 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      exchange_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "completed"
+        | "cancelled"
+      item_status: "available" | "pending_exchange" | "exchanged" | "removed"
+      notification_type:
+        | "exchange_request"
+        | "exchange_accepted"
+        | "exchange_rejected"
+        | "exchange_completed"
+        | "exchange_cancelled"
+        | "item_inquiry"
+        | "system"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -200,6 +474,24 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      exchange_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "completed",
+        "cancelled",
+      ],
+      item_status: ["available", "pending_exchange", "exchanged", "removed"],
+      notification_type: [
+        "exchange_request",
+        "exchange_accepted",
+        "exchange_rejected",
+        "exchange_completed",
+        "exchange_cancelled",
+        "item_inquiry",
+        "system",
+      ],
+    },
   },
 } as const
