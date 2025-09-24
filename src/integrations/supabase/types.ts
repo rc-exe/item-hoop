@@ -41,6 +41,39 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          created_at: string
+          exchange_id: string | null
+          id: string
+          last_message_at: string | null
+          last_message_id: string | null
+          participant_1_id: string
+          participant_2_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exchange_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_id?: string | null
+          participant_1_id: string
+          participant_2_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exchange_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_id?: string | null
+          participant_1_id?: string
+          participant_2_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exchange_ratings: {
         Row: {
           comment: string | null
@@ -233,6 +266,42 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          exchange_id: string | null
+          id: string
+          is_read: boolean | null
+          message_type: string | null
+          receiver_id: string
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          exchange_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          receiver_id: string
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          exchange_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          receiver_id?: string
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           content: string
@@ -330,7 +399,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_or_create_conversation: {
+        Args: {
+          exchange_id_param?: string
+          participant_1: string
+          participant_2: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       exchange_status:
