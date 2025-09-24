@@ -1,84 +1,135 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Package, ArrowUpDown, Bell, Star, Eye } from "lucide-react";
-import { Link } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar, Eye, Package, Star, TrendingUp, Users } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { ExchangeManagement } from '@/components/ExchangeManagement';
 
-// Mock data
-const userItems = [
-  {
-    id: 1,
-    title: "Vintage Camera",
-    category: "Electronics",
-    status: "available",
-    views: 24,
-    requests: 3,
-    image: "/src/assets/sample-camera.jpg"
-  },
-  {
-    id: 2,
-    title: "Guitar",
-    category: "Musical Instruments", 
-    status: "exchanged",
-    views: 18,
-    requests: 5,
-    image: "/src/assets/sample-guitar.jpg"
+interface DashboardStats {
+  totalItems: number;
+  totalViews: number;
+  activeExchanges: number;
+  completedExchanges: number;
+}
+
+interface Exchange {
+  id: string;
+  status: string;
+  created_at: string;
+  owner_item: {
+    title: string;
+    images: string[];
+  };
+  requester_item?: {
+    title: string;
+    images: string[];
+  };
+  owner: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+  requester: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+  message?: string;
+}
+
+export const Dashboard = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalItems: 0,
+    totalViews: 0,
+    activeExchanges: 0,
+    completedExchanges: 0,
+  });
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDashboardData = async () => {
+    if (!user) return;
+    
+    try {
+      // Fetch user's items
+      const { data: items } = await supabase
+        .from('items')
+        .select('views_count')
+        .eq('user_id', user.id);
+
+      // Fetch exchanges with related data
+      const { data: exchangesData } = await supabase
+        .from('exchanges')
+        .select(`
+          *,
+          owner_item:items!exchanges_owner_item_id_fkey(title, images),
+          requester_item:items!exchanges_requester_item_id_fkey(title, images),
+          owner:profiles!exchanges_owner_id_fkey(id, username, avatar_url),
+          requester:profiles!exchanges_requester_id_fkey(id, username, avatar_url)
+        `)
+        .or(`owner_id.eq.${user.id},requester_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      const totalItems = items?.length || 0;
+      const totalViews = items?.reduce((sum, item) => sum + (item.views_count || 0), 0) || 0;
+      const activeExchanges = exchangesData?.filter(e => ['pending', 'accepted'].includes(e.status)).length || 0;
+      const completedExchanges = exchangesData?.filter(e => e.status === 'completed').length || 0;
+
+      setStats({
+        totalItems,
+        totalViews,
+        activeExchanges,
+        completedExchanges,
+      });
+
+      setExchanges(exchangesData || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
-];
 
-const exchangeRequests = [
-  {
-    id: 1,
-    itemRequested: "Vintage Camera",
-    itemOffered: "Professional Headphones",
-    requesterName: "Sarah Chen",
-    status: "pending",
-    date: "2024-01-15"
-  },
-  {
-    id: 2,
-    itemRequested: "Guitar",
-    itemOffered: "Art Supplies Set",
-    requesterName: "Mike Rodriguez",
-    status: "accepted",
-    date: "2024-01-12"
-  }
-];
-
-const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="hero-title text-3xl text-foreground mb-2">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Manage your items and exchanges</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Items</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">+2 from last month</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Exchanges</CardTitle>
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">2 pending requests</p>
+              <div className="text-2xl font-bold">{stats.totalItems}</div>
+              <p className="text-xs text-muted-foreground">Items you've listed</p>
             </CardContent>
           </Card>
           
@@ -88,120 +139,68 @@ const Dashboard = () => {
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">142</div>
-              <p className="text-xs text-muted-foreground">+15% this week</p>
+              <div className="text-2xl font-bold">{stats.totalViews}</div>
+              <p className="text-xs text-muted-foreground">Views on your items</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rating</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Exchanges</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeExchanges}</div>
+              <p className="text-xs text-muted-foreground">Pending or accepted</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
               <Star className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4.8</div>
-              <p className="text-xs text-muted-foreground">Based on 15 reviews</p>
+              <div className="text-2xl font-bold">{stats.completedExchanges}</div>
+              <p className="text-xs text-muted-foreground">Successful exchanges</p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="items" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="items">My Items</TabsTrigger>
-            <TabsTrigger value="requests">Exchange Requests</TabsTrigger>
-            <TabsTrigger value="history">Exchange History</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="items" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="section-title text-xl">Your Listed Items</h2>
-              <Link to="/list-item">
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New Item
-                </Button>
-              </Link>
-            </div>
-
-            <div className="grid gap-6">
-              {userItems.map((item) => (
-                <Card key={item.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex gap-4">
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        className="w-24 h-24 rounded-lg object-cover"
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-lg">{item.title}</h3>
-                          <Badge variant={item.status === 'available' ? 'default' : 'secondary'}>
-                            {item.status}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-3">{item.category}</p>
-                        <div className="flex gap-4 text-sm text-muted-foreground">
-                          <span>{item.views} views</span>
-                          <span>{item.requests} requests</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button variant="outline" size="sm">Edit</Button>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="requests" className="space-y-6">
-            <h2 className="text-xl font-semibold">Exchange Requests</h2>
-            
-            <div className="grid gap-4">
-              {exchangeRequests.map((request) => (
-                <Card key={request.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{request.requesterName}</h3>
-                          <Badge variant={request.status === 'pending' ? 'outline' : 'default'}>
-                            {request.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Wants to exchange <strong>{request.itemOffered}</strong> for your <strong>{request.itemRequested}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">{request.date}</p>
-                      </div>
-                      {request.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">Decline</Button>
-                          <Button size="sm">Accept</Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="history" className="space-y-6">
-            <h2 className="text-xl font-semibold">Exchange History</h2>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <ArrowUpDown className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">No completed exchanges yet</h3>
-                <p className="text-muted-foreground">Start exchanging items to see your history here.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
+        {/* Recent Exchanges */}
+        <div className="grid md:grid-cols-1 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Calendar className="mr-2 h-5 w-5" />
+                Recent Exchanges
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {exchanges.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No exchanges yet</h3>
+                  <p className="text-muted-foreground">
+                    Start browsing items to make your first exchange request!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {exchanges.slice(0, 5).map((exchange) => (
+                    <ExchangeManagement
+                      key={exchange.id}
+                      exchange={exchange}
+                      currentUserId={user?.id || ''}
+                      onUpdate={fetchDashboardData}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

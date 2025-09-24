@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Search, User, Plus, Bell, LogOut } from "lucide-react";
+import { Search, User, Plus, Bell, LogOut, MessageCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -54,6 +54,12 @@ const Navbar = () => {
                   </Button>
                 </Link>
                 
+                <Link to="/messages">
+                  <Button variant="ghost" size="sm" className="hidden md:flex">
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
+                </Link>
+                
                 <Link to="/list-item">
                   <Button variant="accent" size="sm">
                     <Plus className="w-4 h-4 mr-2" />
@@ -86,6 +92,9 @@ const Navbar = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/messages">Messages</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/profile">Profile</Link>
