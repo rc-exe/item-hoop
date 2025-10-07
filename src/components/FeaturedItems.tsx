@@ -1,62 +1,97 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin, Clock } from "lucide-react";
 import { FadeInUp } from "./ScrollAnimations";
 import { motion } from "framer-motion";
-import cameraImage from "@/assets/sample-camera.jpg";
-import booksImage from "@/assets/sample-books.jpg";
-import guitarImage from "@/assets/sample-guitar.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 
-const featuredItems = [
-  {
-    id: 1,
-    title: "Vintage Canon Camera",
-    description: "Beautiful vintage camera in excellent condition. Perfect for photography enthusiasts.",
-    image: cameraImage,
-    category: "Electronics",
-    location: "San Francisco, CA",
-    timeAgo: "2 hours ago",
-    wantedItems: ["Laptop", "Books"],
-    user: {
-      name: "Sarah M.",
-      rating: 4.9,
-      exchanges: 23
-    }
-  },
-  {
-    id: 2,
-    title: "Classic Book Collection",
-    description: "Collection of 15 classic literature books. Great condition, perfect for book lovers.",
-    image: booksImage,
-    category: "Books",
-    location: "Austin, TX",
-    timeAgo: "5 hours ago",
-    wantedItems: ["Guitar", "Art Supplies"],
-    user: {
-      name: "Mike R.",
-      rating: 4.8,
-      exchanges: 41
-    }
-  },
-  {
-    id: 3,
-    title: "Acoustic Guitar",
-    description: "Yamaha acoustic guitar, barely used. Comes with case and picks.",
-    image: guitarImage,
-    category: "Music",
-    location: "Seattle, WA",
-    timeAgo: "1 day ago",
-    wantedItems: ["Camera", "Skateboard"],
-    user: {
-      name: "Alex K.",
-      rating: 5.0,
-      exchanges: 15
-    }
-  }
-];
+interface Item {
+  id: string;
+  title: string;
+  description: string | null;
+  images: string[];
+  location: string | null;
+  created_at: string;
+  status: string;
+  profiles: {
+    username: string | null;
+    rating: number | null;
+    total_exchanges: number;
+  };
+  categories: {
+    name: string;
+  } | null;
+}
 
 const FeaturedItems = () => {
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const fetchFeaturedItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          profiles(username, rating, total_exchanges),
+          categories(name)
+        `)
+        .eq('status', 'available')
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (error) throw error;
+      setItems(data || []);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFeaturedItems();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('featured-items-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'items',
+          filter: 'is_featured=eq.true'
+        },
+        () => {
+          fetchFeaturedItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading featured items...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
@@ -69,107 +104,120 @@ const FeaturedItems = () => {
           </p>
         </FadeInUp>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredItems.map((item, index) => (
-            <FadeInUp key={item.id} delay={index * 0.1}>
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="h-full"
-              >
-                <Card className="group hover:shadow-card-hover transition-all duration-300 overflow-hidden border-border/50 h-full">
-              <CardHeader className="p-0 relative">
-                <div className="aspect-square overflow-hidden">
-                  <motion.img
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+        {items.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No featured items available at the moment.</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((item, index) => (
+              <FadeInUp key={item.id} delay={index * 0.1}>
                 <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ y: -5 }}
+                  className="h-full"
                 >
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  <Card 
+                    className="group hover:shadow-card-hover transition-all duration-300 overflow-hidden border-border/50 h-full cursor-pointer"
+                    onClick={() => navigate(`/item/${item.id}`)}
                   >
-                    <Heart className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-                <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
-                  {item.category}
-                </Badge>
-              </CardHeader>
-
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
-                    {item.title}
-                  </h3>
-                  
-                  <p className="text-muted-foreground text-sm line-clamp-2">
-                    {item.description}
-                  </p>
-
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {item.location}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {item.timeAgo}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">Looking for:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {item.wantedItems.map((wanted) => (
-                        <Badge key={wanted} variant="secondary" className="text-xs">
-                          {wanted}
+                    <CardHeader className="p-0 relative">
+                      <div className="aspect-square overflow-hidden">
+                        <motion.img
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.3 }}
+                          src={item.images?.[0] || '/placeholder.svg'}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Heart className="w-4 h-4" />
+                        </Button>
+                      </motion.div>
+                      {item.categories && (
+                        <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
+                          {item.categories.name}
                         </Badge>
-                      ))}
-                    </div>
-                  </div>
+                      )}
+                    </CardHeader>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <div className="text-sm">
-                      <span className="font-medium">{item.user.name}</span>
-                      <span className="text-muted-foreground ml-2">
-                        ⭐ {item.user.rating} ({item.user.exchanges} exchanges)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
+                    <CardContent className="p-6">
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
+                          {item.title}
+                        </h3>
+                        
+                        <p className="text-muted-foreground text-sm line-clamp-2">
+                          {item.description || "No description available"}
+                        </p>
 
-              <CardFooter className="p-6 pt-0">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full"
-                >
-                  <Button className="w-full font-medium" variant="default">
-                    Request Exchange
-                  </Button>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {item.location || "Location not specified"}
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <div className="text-sm">
+                            <span className="font-medium">{item.profiles?.username || "Anonymous"}</span>
+                            <span className="text-muted-foreground ml-2">
+                              ⭐ {item.profiles?.rating?.toFixed(1) || "0.0"} ({item.profiles?.total_exchanges || 0} exchanges)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+
+                    <CardFooter className="p-6 pt-0">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full"
+                      >
+                        <Button 
+                          className="w-full font-medium" 
+                          variant="default"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/item/${item.id}`);
+                          }}
+                        >
+                          Request Exchange
+                        </Button>
+                      </motion.div>
+                    </CardFooter>
+                  </Card>
                 </motion.div>
-              </CardFooter>
-                </Card>
-              </motion.div>
-            </FadeInUp>
-          ))}
-        </div>
+              </FadeInUp>
+            ))}
+          </div>
+        )}
 
         <FadeInUp delay={0.3} className="text-center mt-12">
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Button variant="outline" size="lg" className="font-medium">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="font-medium"
+              onClick={() => navigate('/browse')}
+            >
               View All Items
             </Button>
           </motion.div>
