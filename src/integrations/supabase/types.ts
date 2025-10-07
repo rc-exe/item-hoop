@@ -407,6 +407,10 @@ export type Database = {
         }
         Returns: string
       }
+      update_user_rating_stats: {
+        Args: { user_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       exchange_status:
