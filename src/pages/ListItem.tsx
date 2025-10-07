@@ -10,6 +10,9 @@ import { Camera, Upload } from "lucide-react";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const categories = [
   "Electronics",
@@ -27,7 +30,10 @@ const categories = [
 const ListItem = () => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm({
     defaultValues: {
@@ -67,19 +73,84 @@ const ListItem = () => {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const onSubmit = (data: any) => {
-    console.log("Form data:", data);
-    console.log("Images:", selectedImages);
-    
-    toast({
-      title: "Item listed successfully!",
-      description: "Your item has been added to the marketplace.",
-    });
-    
-    // Reset form
-    form.reset();
-    setSelectedImages([]);
-    setImagePreviews([]);
+  const onSubmit = async (data: any) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to list an item.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (selectedImages.length === 0) {
+      toast({
+        title: "Images required",
+        description: "Please upload at least one image of your item.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Upload images to storage
+      const imageUrls: string[] = [];
+      for (const image of selectedImages) {
+        const fileExt = image.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
+        
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('item-images')
+          .upload(fileName, image);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('item-images')
+          .getPublicUrl(fileName);
+        
+        imageUrls.push(publicUrl);
+      }
+
+      // Insert item into database
+      const { error: insertError } = await supabase
+        .from('items')
+        .insert({
+          user_id: user.id,
+          title: data.title,
+          description: data.description,
+          category_id: null, // You can add category lookup if needed
+          condition: data.condition,
+          images: imageUrls,
+          status: 'available'
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Item listed successfully!",
+        description: "Your item has been added to the marketplace.",
+      });
+      
+      // Reset form
+      form.reset();
+      setSelectedImages([]);
+      setImagePreviews([]);
+      
+      // Navigate to dashboard or browse
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Error listing item:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to list item. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -260,11 +331,11 @@ const ListItem = () => {
                 />
 
                 <div className="flex gap-4 pt-6">
-                  <Button type="submit" className="flex-1">
-                    List Item
+                  <Button type="submit" className="flex-1" disabled={uploading}>
+                    {uploading ? 'Uploading...' : 'List Item'}
                   </Button>
-                  <Button type="button" variant="outline" className="flex-1">
-                    Save as Draft
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/dashboard')}>
+                    Cancel
                   </Button>
                 </div>
               </form>

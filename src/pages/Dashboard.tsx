@@ -96,6 +96,41 @@ export const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Subscribe to real-time updates for exchanges
+    if (!user) return;
+
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'exchanges',
+          filter: `or(owner_id=eq.${user.id},requester_id=eq.${user.id})`
+        },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'items',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   if (loading) {
