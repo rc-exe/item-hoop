@@ -20,6 +20,11 @@ const Login = () => {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      return;
+    }
+
     const { error } = await signIn(email, password);
     if (!error) {
       navigate(from, { replace: true });

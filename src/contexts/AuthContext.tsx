@@ -100,11 +100,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData?: any) => {
     try {
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: userData,
+          emailRedirectTo: redirectUrl,
         },
       });
 
@@ -223,10 +226,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error('No user logged in');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, ...updates })
-        .eq('id', user.id);
+        .upsert({ 
+          id: user.id, 
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (error) {
         toast({
@@ -235,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           variant: "destructive",
         });
       } else {
-        await fetchProfile(user.id);
+        setProfile(data);
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully.",
