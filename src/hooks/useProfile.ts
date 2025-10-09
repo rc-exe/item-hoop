@@ -55,29 +55,52 @@ export const useProfile = (userId?: string) => {
   const targetUserId = userId || user?.id;
 
   useEffect(() => {
-    if (targetUserId) {
-      fetchProfile();
-      fetchUserItems();
-      fetchUserActivity();
-    }
+    const loadData = async () => {
+      if (!targetUserId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      
+      try {
+        await Promise.all([
+          fetchProfile(),
+          fetchUserItems(),
+          fetchUserActivity()
+        ]);
+      } catch (err) {
+        console.error('Error loading profile data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [targetUserId]);
 
   const fetchProfile = async () => {
+    if (!targetUserId) return;
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setProfile(data);
     } catch (err) {
+      console.error('Profile fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
     }
   };
 
   const fetchUserItems = async () => {
+    if (!targetUserId) return;
+    
     try {
       const { data, error } = await supabase
         .from('items')
@@ -102,21 +125,22 @@ export const useProfile = (userId?: string) => {
 
       if (error) throw error;
       
-      const formattedItems: UserItem[] = data.map(item => ({
+      const formattedItems: UserItem[] = (data || []).map(item => ({
         ...item,
         category: item.categories || null
       }));
       
       setItems(formattedItems);
     } catch (err) {
+      console.error('Items fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch items');
     }
   };
 
   const fetchUserActivity = async () => {
+    if (!targetUserId) return;
+    
     try {
-      setLoading(true);
-      
       // Get recent items listed
       const { data: recentItems } = await supabase
         .from('items')
@@ -208,17 +232,27 @@ export const useProfile = (userId?: string) => {
 
       setActivity(activities.slice(0, 10)); // Limit to 10 most recent
     } catch (err) {
+      console.error('Activity fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch activity');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const refreshData = () => {
-    if (targetUserId) {
-      fetchProfile();
-      fetchUserItems();
-      fetchUserActivity();
+  const refreshData = async () => {
+    if (!targetUserId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await Promise.all([
+        fetchProfile(),
+        fetchUserItems(),
+        fetchUserActivity()
+      ]);
+    } catch (err) {
+      console.error('Error refreshing profile data:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
