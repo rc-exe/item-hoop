@@ -51,27 +51,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
+    // Set up auth state listener FIRST
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session);
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+        }, 0);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
       }
       setLoading(false);
     });
@@ -196,6 +199,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Clear local state first
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -204,14 +212,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Signed out",
-          description: "You have been signed out successfully.",
-        });
+        return { error };
       }
+      
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
 
-      return { error };
+      return { error: null };
     } catch (error: any) {
       toast({
         title: "Sign out failed",
