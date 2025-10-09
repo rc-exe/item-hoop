@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -272,7 +272,7 @@ const Browse = () => {
 
               <CardFooter className="p-6 pt-0">
                 <Button className="w-full" variant="default" asChild>
-                  <a href={`/item/${item.id}`}>View Details</a>
+                  <Link to={`/item/${item.id}`}>View Details</Link>
                 </Button>
               </CardFooter>
             </Card>
