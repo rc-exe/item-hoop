@@ -42,7 +42,6 @@ const FeaturedItems = () => {
           categories(name)
         `)
         .eq('status', 'available')
-        .eq('is_featured', true)
         .order('created_at', { ascending: false })
         .limit(6);
 
@@ -60,14 +59,13 @@ const FeaturedItems = () => {
 
     // Set up real-time subscription
     const channel = supabase
-      .channel('featured-items-changes')
+      .channel('items-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'items',
-          filter: 'is_featured=eq.true'
+          table: 'items'
         },
         () => {
           fetchFeaturedItems();
@@ -97,10 +95,10 @@ const FeaturedItems = () => {
       <div className="container mx-auto px-4">
         <FadeInUp className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
-            Featured Items
+            Latest Items
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
-            Check out these amazing items available for exchange right now
+            Discover recently listed items from our community
           </p>
         </FadeInUp>
 

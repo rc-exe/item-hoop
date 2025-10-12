@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Star, Calendar, MapPin, Package, ArrowUpDown, MessageSquare, Settings, Eye, Clock, Users } from "lucide-react";
+import { Star, Calendar, MapPin, Package, ArrowUpDown, MessageSquare, Settings, Eye, Clock, Users, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useParams, Link } from "react-router-dom";
 import { format } from "date-fns";
 import Navbar from "@/components/Navbar";
@@ -16,9 +18,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 const Profile = () => {
   const { username } = useParams();
   const { user } = useAuth();
-  const { profile, items, activity, loading, error } = useProfile();
+  const { profile, items, activity, loading, error, refreshData } = useProfile();
+  const { toast } = useToast();
   
   const isOwnProfile = !username; // If no username in URL, it's the current user's profile
+
+  const handleDeleteItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Item deleted",
+        description: "Your item has been successfully deleted.",
+      });
+
+      refreshData();
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -205,42 +233,57 @@ const Profile = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {items.map((item) => (
-                  <Card key={item.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted relative">
-                        {item.images.length > 0 ? (
-                          <img 
-                            src={item.images[0]} 
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-muted">
-                            <Package className="w-8 h-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <Badge 
-                          className="absolute top-2 right-2" 
-                          variant={item.status === 'available' ? 'default' : 
-                                  item.status === 'exchanged' ? 'secondary' : 'outline'}
+                  <Card key={item.id} className="group hover:shadow-lg transition-shadow">
+                    <Link to={`/item/${item.id}`} className="block">
+                      <CardContent className="p-4">
+                        <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted relative">
+                          {item.images.length > 0 ? (
+                            <img 
+                              src={item.images[0]} 
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-muted">
+                              <Package className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          <Badge 
+                            className="absolute top-2 right-2" 
+                            variant={item.status === 'available' ? 'default' : 
+                                    item.status === 'exchanged' ? 'secondary' : 'outline'}
+                          >
+                            {item.status}
+                          </Badge>
+                        </div>
+                        
+                        <h3 className="font-semibold mb-1">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {item.category?.name || "Uncategorized"}
+                        </p>
+                        
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {item.views_count} views
+                          </span>
+                          <span>{format(new Date(item.created_at), "MMM d")}</span>
+                        </div>
+                      </CardContent>
+                    </Link>
+                    {isOwnProfile && (
+                      <div className="p-4 pt-0">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleDeleteItem(item.id)}
                         >
-                          {item.status}
-                        </Badge>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Item
+                        </Button>
                       </div>
-                      
-                      <h3 className="font-semibold mb-1">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {item.category?.name || "Uncategorized"}
-                      </p>
-                      
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          {item.views_count} views
-                        </span>
-                        <span>{format(new Date(item.created_at), "MMM d")}</span>
-                      </div>
-                    </CardContent>
+                    )}
                   </Card>
                 ))}
               </div>
