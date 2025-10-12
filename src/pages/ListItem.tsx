@@ -41,6 +41,7 @@ const ListItem = () => {
       description: "",
       category: "",
       condition: "",
+      location: "",
       lookingFor: ""
     }
   });
@@ -121,8 +122,9 @@ const ListItem = () => {
           user_id: user.id,
           title: data.title,
           description: data.description,
-          category_id: null, // You can add category lookup if needed
+          category_id: null,
           condition: data.condition,
+          location: data.location || null,
           images: imageUrls,
           status: 'available'
         });
@@ -277,7 +279,7 @@ const ListItem = () => {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="like-new">Like New</SelectItem>
+                          <SelectItem value="like_new">Like New</SelectItem>
                           <SelectItem value="good">Good</SelectItem>
                           <SelectItem value="fair">Fair</SelectItem>
                           <SelectItem value="poor">Poor</SelectItem>
@@ -303,6 +305,23 @@ const ListItem = () => {
                       </FormControl>
                       <FormDescription>
                         Include important details that would help someone decide if they want to trade
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. New York, NY" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Help others know where the item is located
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
