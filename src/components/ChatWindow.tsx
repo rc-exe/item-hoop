@@ -24,7 +24,7 @@ interface Message {
 
 interface ChatWindowProps {
   receiverId: string;
-  receiverName: string;
+  receiverName?: string;
   receiverAvatar?: string;
   exchangeId?: string;
   onClose: () => void;
@@ -155,9 +155,9 @@ export const ChatWindow = ({
         <div className="flex items-center space-x-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={receiverAvatar} />
-            <AvatarFallback>{receiverName.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{(receiverName || 'User').charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <span className="font-medium text-sm">{receiverName}</span>
+          <span className="font-medium text-sm">{receiverName || 'User'}</span>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="h-4 w-4" />
