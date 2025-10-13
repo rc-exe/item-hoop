@@ -211,8 +211,8 @@ const ItemDetail = () => {
     );
   }
 
-  const ownerName = item.profiles.username || item.profiles.full_name || "Anonymous";
-  const ownerInitials = ownerName.split(' ').map(n => n[0]).join('').toUpperCase();
+  const ownerName = item.profiles.username || item.profiles.full_name || "User";
+  const ownerInitials = ownerName ? ownerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : "U";
 
   return (
     <div className="min-h-screen bg-background">
@@ -304,11 +304,13 @@ const ItemDetail = () => {
                   </Avatar>
                   
                   <div className="flex-1">
-                    <h3 className="font-semibold">{ownerName}</h3>
+                    <h3 className="font-semibold cursor-pointer hover:text-primary" onClick={() => navigate(`/profile/${item.user_id}`)}>
+                      {ownerName}
+                    </h3>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        {item.profiles.rating || 0}
+                        {Number(item.profiles.rating || 0).toFixed(1)}
                       </span>
                       <span>{item.profiles.total_exchanges || 0} exchanges</span>
                       <span>Joined {new Date(item.profiles.created_at).toLocaleDateString()}</span>
