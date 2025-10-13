@@ -1,83 +1,218 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { ArrowUpDown, Heart, Share2, Flag, Star, Calendar, Eye, MessageSquare } from "lucide-react";
-import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowUpDown, Heart, Share2, Flag, Star, Calendar, Eye, MessageSquare, Loader2 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Mock item data
-const mockItem = {
-  id: 1,
-  title: "Vintage Canon AE-1 Camera",
-  description: "Beautiful vintage Canon AE-1 35mm film camera in excellent working condition. This classic camera has been well-maintained and includes the original 50mm f/1.8 lens. Perfect for film photography enthusiasts or collectors. Some minor cosmetic wear as expected from age, but all functions work perfectly. Comes with camera strap and lens cap.",
-  category: "Electronics",
-  condition: "Good",
-  images: [
-    "/src/assets/sample-camera.jpg",
-    "/src/assets/sample-camera.jpg",
-    "/src/assets/sample-camera.jpg"
-  ],
-  owner: {
-    name: "Sarah Chen",
-    avatar: "/src/assets/sample-camera.jpg",
-    rating: 4.8,
-    totalExchanges: 23,
-    joinedDate: "2023-06-15"
-  },
-  lookingFor: "Art supplies, vintage books, musical instruments, or photography equipment",
-  postedDate: "2024-01-10",
-  views: 127,
-  isWishlisted: false,
-  tags: ["vintage", "photography", "film camera", "canon"]
-};
+interface Item {
+  id: string;
+  title: string;
+  description: string | null;
+  category_id: string | null;
+  condition: string | null;
+  images: string[];
+  user_id: string;
+  created_at: string;
+  views_count: number;
+  categories: { name: string } | null;
+  profiles: {
+    username: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+    rating: number;
+    total_exchanges: number;
+    created_at: string;
+  };
+}
 
-const relatedItems = [
-  {
-    id: 2,
-    title: "Professional Headphones",
-    image: "/src/assets/sample-camera.jpg",
-    owner: "Mike Rodriguez"
-  },
-  {
-    id: 3,
-    title: "Art Supplies Set",
-    image: "/src/assets/sample-books.jpg",
-    owner: "Emma Wilson"
-  },
-  {
-    id: 4,
-    title: "Vintage Vinyl Records",
-    image: "/src/assets/sample-guitar.jpg",
-    owner: "Alex Johnson"
-  }
-];
+interface UserItem {
+  id: string;
+  title: string;
+  images: string[];
+}
 
 const ItemDetail = () => {
   const { id } = useParams();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(mockItem.isWishlisted);
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
+  
+  const [item, setItem] = useState<Item | null>(null);
+  const [relatedItems, setRelatedItems] = useState<Item[]>([]);
+  const [userItems, setUserItems] = useState<UserItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isExchangeDialogOpen, setIsExchangeDialogOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleExchangeRequest = () => {
-    toast({
-      title: "Exchange request sent!",
-      description: "Sarah Chen will be notified of your interest in this item.",
-    });
+  useEffect(() => {
+    fetchItemDetails();
+    if (user) {
+      fetchUserItems();
+    }
+  }, [id, user]);
+
+  const fetchItemDetails = async () => {
+    if (!id) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch item details with owner profile and category
+      const { data: itemData, error: itemError } = await supabase
+        .from('items')
+        .select(`
+          *,
+          categories (name),
+          profiles (username, full_name, avatar_url, rating, total_exchanges, created_at)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (itemError) throw itemError;
+
+      setItem(itemData);
+
+      // Increment view count
+      await supabase
+        .from('items')
+        .update({ views_count: (itemData.views_count || 0) + 1 })
+        .eq('id', id);
+
+      // Fetch related items from the same owner
+      const { data: related } = await supabase
+        .from('items')
+        .select(`
+          *,
+          categories (name),
+          profiles (username, full_name, avatar_url, rating, total_exchanges, created_at)
+        `)
+        .eq('user_id', itemData.user_id)
+        .neq('id', id)
+        .eq('status', 'available')
+        .limit(3);
+
+      if (related) {
+        setRelatedItems(related);
+      }
+    } catch (error) {
+      console.error('Error fetching item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load item details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    toast({
-      title: isWishlisted ? "Removed from wishlist" : "Added to wishlist",
-      description: isWishlisted ? 
-        "Item removed from your wishlist" : 
-        "You'll be notified if this item becomes available for exchange",
-    });
+  const fetchUserItems = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('items')
+      .select('id, title, images')
+      .eq('user_id', user.id)
+      .eq('status', 'available');
+
+    if (data) {
+      setUserItems(data);
+    }
   };
+
+  const handleExchangeRequest = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to request an exchange",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (!item) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-exchange-request', {
+        body: {
+          owner_item_id: item.id,
+          requester_item_id: selectedItemId || null,
+          message: message || null,
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Exchange request sent!",
+        description: `${item.profiles.username || item.profiles.full_name} will be notified of your interest.`,
+      });
+
+      setIsExchangeDialogOpen(false);
+      setSelectedItemId("");
+      setMessage("");
+    } catch (error: any) {
+      console.error('Error creating exchange request:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send exchange request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Skeleton className="aspect-square rounded-lg" />
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-3/4" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Item not found</h1>
+          <Button onClick={() => navigate('/browse')}>Browse Items</Button>
+        </main>
+      </div>
+    );
+  }
+
+  const ownerName = item.profiles.username || item.profiles.full_name || "Anonymous";
+  const ownerInitials = ownerName.split(' ').map(n => n[0]).join('').toUpperCase();
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,26 +223,32 @@ const ItemDetail = () => {
           {/* Image Gallery */}
           <div className="space-y-4">
             <div className="aspect-square rounded-lg overflow-hidden bg-muted">
-              <img 
-                src={mockItem.images[currentImageIndex]} 
-                alt={mockItem.title}
-                className="w-full h-full object-cover"
-              />
+              {item.images && item.images.length > 0 ? (
+                <img 
+                  src={item.images[currentImageIndex]} 
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  No image available
+                </div>
+              )}
             </div>
             
-            {mockItem.images.length > 1 && (
-              <div className="flex gap-2">
-                {mockItem.images.map((image, index) => (
+            {item.images && item.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {item.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
                       currentImageIndex === index ? 'border-primary' : 'border-transparent'
                     }`}
                   >
                     <img 
                       src={image} 
-                      alt={`${mockItem.title} ${index + 1}`}
+                      alt={`${item.title} ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -121,22 +262,22 @@ const ItemDetail = () => {
             <div>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground mb-2">{mockItem.title}</h1>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">{item.title}</h1>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      {mockItem.views} views
+                      {item.views_count || 0} views
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      Posted {mockItem.postedDate}
+                      Posted {new Date(item.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={handleWishlist}>
-                    <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+                  <Button variant="ghost" size="sm">
+                    <Heart className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="sm">
                     <Share2 className="w-4 h-4" />
@@ -147,12 +288,9 @@ const ItemDetail = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2 mb-4">
-                <Badge variant="secondary">{mockItem.category}</Badge>
-                <Badge variant="outline">{mockItem.condition}</Badge>
-                {mockItem.tags.map(tag => (
-                  <Badge key={tag} variant="outline" className="text-xs">#{tag}</Badge>
-                ))}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {item.categories && <Badge variant="secondary">{item.categories.name}</Badge>}
+                {item.condition && <Badge variant="outline" className="capitalize">{item.condition.replace('_', ' ')}</Badge>}
               </div>
             </div>
 
@@ -161,78 +299,157 @@ const ItemDetail = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="w-12 h-12">
-                    <AvatarImage src={mockItem.owner.avatar} />
-                    <AvatarFallback>{mockItem.owner.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={item.profiles.avatar_url || undefined} />
+                    <AvatarFallback>{ownerInitials}</AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1">
-                    <h3 className="font-semibold">{mockItem.owner.name}</h3>
+                    <h3 className="font-semibold">{ownerName}</h3>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        {mockItem.owner.rating}
+                        {item.profiles.rating || 0}
                       </span>
-                      <span>{mockItem.owner.totalExchanges} exchanges</span>
-                      <span>Joined {mockItem.owner.joinedDate}</span>
+                      <span>{item.profiles.total_exchanges || 0} exchanges</span>
+                      <span>Joined {new Date(item.profiles.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                   
-                  <Button variant="outline" size="sm">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Message
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate(`/profile/${item.user_id}`)}
+                  >
+                    View Profile
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
             {/* Exchange Actions */}
-            <div className="space-y-3">
-              <Button className="w-full" size="lg" onClick={handleExchangeRequest}>
-                <ArrowUpDown className="w-5 h-5 mr-2" />
-                Request Exchange
-              </Button>
-              <Button variant="outline" className="w-full">
-                Make Offer
-              </Button>
-            </div>
+            {user?.id !== item.user_id && (
+              <div className="space-y-3">
+                <Dialog open={isExchangeDialogOpen} onOpenChange={setIsExchangeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" size="lg">
+                      <ArrowUpDown className="w-5 h-5 mr-2" />
+                      Request Exchange
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Request Exchange</DialogTitle>
+                      <DialogDescription>
+                        Send an exchange request for "{item.title}"
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="item-offer">Offer Your Item (Optional)</Label>
+                        <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+                          <SelectTrigger id="item-offer">
+                            <SelectValue placeholder="Select an item to offer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {userItems.length === 0 ? (
+                              <div className="p-2 text-sm text-muted-foreground">
+                                You have no items to offer
+                              </div>
+                            ) : (
+                              userItems.map((userItem) => (
+                                <SelectItem key={userItem.id} value={userItem.id}>
+                                  {userItem.title}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          You can also request without offering a specific item
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="message">Message (Optional)</Label>
+                        <Textarea
+                          id="message"
+                          placeholder="Tell the owner why you're interested..."
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setIsExchangeDialogOpen(false)}
+                          disabled={isSubmitting}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleExchangeRequest}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          Send Request
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
 
             {/* Description */}
-            <div>
-              <h3 className="font-semibold mb-3">Description</h3>
-              <p className="text-muted-foreground leading-relaxed">{mockItem.description}</p>
-            </div>
-
-            {/* Looking For */}
-            <div>
-              <h3 className="font-semibold mb-3">Owner is looking for</h3>
-              <p className="text-muted-foreground">{mockItem.lookingFor}</p>
-            </div>
+            {item.description && (
+              <div>
+                <h3 className="font-semibold mb-3">Description</h3>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{item.description}</p>
+              </div>
+            )}
           </div>
         </div>
 
         <Separator className="my-8" />
 
         {/* Related Items */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Other items from {mockItem.owner.name}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {relatedItems.map((item) => (
-              <Card key={item.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted">
-                    <img 
-                      src={item.image} 
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="font-semibold mb-1">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">by {item.owner}</p>
-                </CardContent>
-              </Card>
-            ))}
+        {relatedItems.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold mb-6">Other items from {ownerName}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedItems.map((relatedItem) => (
+                <Card 
+                  key={relatedItem.id} 
+                  className="group hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/item/${relatedItem.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted">
+                      {relatedItem.images && relatedItem.images.length > 0 ? (
+                        <img 
+                          src={relatedItem.images[0]} 
+                          alt={relatedItem.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          No image
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="font-semibold mb-1">{relatedItem.title}</h3>
+                    {relatedItem.categories && (
+                      <p className="text-sm text-muted-foreground">{relatedItem.categories.name}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
