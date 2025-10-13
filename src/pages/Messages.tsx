@@ -103,23 +103,42 @@ export const Messages = () => {
     fetchConversations();
 
     // Subscribe to new messages to update conversation list
-    const channel = supabase
-      .channel('conversations-updates')
+    const messagesChannel = supabase
+      .channel('conversations-messages-updates')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages'
         },
         () => {
+          // Refetch conversations when any message is created/updated
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to conversation updates
+    const conversationsChannel = supabase
+      .channel('conversations-table-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations'
+        },
+        () => {
+          // Refetch conversations when conversation table changes
           fetchConversations();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(conversationsChannel);
     };
   }, [user]);
 

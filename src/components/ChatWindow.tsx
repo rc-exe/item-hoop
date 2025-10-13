@@ -16,6 +16,7 @@ interface Message {
   content: string;
   message_type: string;
   created_at: string;
+  exchange_id?: string | null;
   sender?: {
     username: string;
     avatar_url: string;
@@ -84,18 +85,25 @@ export const ChatWindow = ({
 
     // Subscribe to new messages
     const channel = supabase
-      .channel('chat-messages')
+      .channel(`chat-${user.id}-${receiverId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages',
-          filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id}))`
+          table: 'messages'
         },
         (payload) => {
           const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
+          // Only add message if it's part of this conversation
+          if (
+            (newMessage.sender_id === user.id && newMessage.receiver_id === receiverId) ||
+            (newMessage.sender_id === receiverId && newMessage.receiver_id === user.id)
+          ) {
+            if (exchangeId === undefined || newMessage.exchange_id === exchangeId || newMessage.exchange_id === null) {
+              setMessages(prev => [...prev, newMessage]);
+            }
+          }
         }
       )
       .subscribe();
