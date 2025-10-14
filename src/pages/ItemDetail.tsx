@@ -58,13 +58,40 @@ const ItemDetail = () => {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     fetchItemDetails();
     if (user) {
       fetchUserItems();
+      checkFavoriteStatus();
     }
   }, [id, user]);
+
+  useEffect(() => {
+    if (!user || !id) return;
+
+    // Real-time updates for favorites
+    const favoritesChannel = supabase
+      .channel('item-detail-favorites')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'favorites',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          checkFavoriteStatus();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(favoritesChannel);
+    };
+  }, [user, id]);
 
   const fetchItemDetails = async () => {
     if (!id) return;
@@ -132,6 +159,70 @@ const ItemDetail = () => {
 
     if (data) {
       setUserItems(data);
+    }
+  };
+
+  const checkFavoriteStatus = async () => {
+    if (!user || !id) return;
+
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('item_id', id)
+      .maybeSingle();
+
+    if (!error) {
+      setIsFavorited(!!data);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please log in to favorite items",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (!id) return;
+
+    try {
+      if (isFavorited) {
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Removed from favorites",
+          description: "Item removed from your favorites",
+        });
+      } else {
+        const { error } = await supabase
+          .from('favorites')
+          .insert({ user_id: user.id, item_id: id });
+
+        if (error) throw error;
+
+        toast({
+          title: "Added to favorites",
+          description: "Item added to your favorites",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error toggling favorite:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update favorites",
+        variant: "destructive",
+      });
     }
   };
 
@@ -276,8 +367,8 @@ const ItemDetail = () => {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Heart className="w-4 h-4" />
+                  <Button variant="ghost" size="sm" onClick={toggleFavorite}>
+                    <Heart className={`w-4 h-4 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
                   </Button>
                   <Button variant="ghost" size="sm">
                     <Share2 className="w-4 h-4" />

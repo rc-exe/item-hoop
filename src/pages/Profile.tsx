@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const Profile = () => {
   const { userId } = useParams();
   const { user } = useAuth();
-  const { profile, items, activity, loading, error, refreshData } = useProfile(userId);
+  const { profile, items, favorites, activity, loading, error, refreshData } = useProfile(userId);
   const { toast } = useToast();
   
   const isOwnProfile = !userId; // If no userId in URL, it's the current user's profile
@@ -211,8 +211,9 @@ const Profile = () => {
 
         {/* Profile Content */}
         <Tabs defaultValue="items" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="items">Items ({items.length})</TabsTrigger>
+            <TabsTrigger value="favorites">Favorites</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
@@ -284,6 +285,66 @@ const Profile = () => {
                         </Button>
                       </div>
                     )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="favorites" className="space-y-6">
+            {favorites.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">No favorite items yet</p>
+                  {isOwnProfile && (
+                    <Button asChild className="mt-4">
+                      <Link to="/browse">Browse Items</Link>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {favorites.map((item) => (
+                  <Card key={item.id} className="group hover:shadow-lg transition-shadow">
+                    <Link to={`/item/${item.id}`} className="block">
+                      <CardContent className="p-4">
+                        <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted relative">
+                          {item.images.length > 0 ? (
+                            <img 
+                              src={item.images[0]} 
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-muted">
+                              <Package className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          <Badge 
+                            className="absolute top-2 right-2" 
+                            variant={item.status === 'available' ? 'default' : 
+                                    item.status === 'exchanged' ? 'secondary' : 'outline'}
+                          >
+                            {item.status}
+                          </Badge>
+                        </div>
+                        
+                        <h3 className="font-semibold mb-1">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {item.category?.name || "Uncategorized"}
+                        </p>
+                        
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {item.views_count} views
+                          </span>
+                          <span>{format(new Date(item.created_at), "MMM d")}</span>
+                        </div>
+                      </CardContent>
+                    </Link>
                   </Card>
                 ))}
               </div>

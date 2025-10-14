@@ -48,6 +48,7 @@ export const useProfile = (userId?: string) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [items, setItems] = useState<UserItem[]>([]);
+  const [favorites, setFavorites] = useState<UserItem[]>([]);
   const [activity, setActivity] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +69,8 @@ export const useProfile = (userId?: string) => {
         await Promise.all([
           fetchProfile(),
           fetchUserItems(),
-          fetchUserActivity()
+          fetchUserActivity(),
+          fetchFavorites()
         ]);
       } catch (err) {
         console.error('Error loading profile data:', err);
@@ -134,6 +136,51 @@ export const useProfile = (userId?: string) => {
     } catch (err) {
       console.error('Items fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch items');
+    }
+  };
+
+  const fetchFavorites = async () => {
+    if (!targetUserId) return;
+    
+    try {
+      const { data: favoritesData, error } = await supabase
+        .from('favorites')
+        .select(`
+          item_id,
+          items:item_id (
+            id,
+            title,
+            description,
+            condition,
+            estimated_value,
+            status,
+            images,
+            views_count,
+            is_featured,
+            created_at,
+            categories:category_id (
+              name,
+              icon
+            )
+          )
+        `)
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const formattedFavorites: UserItem[] = (favoritesData || [])
+        .map(fav => fav.items)
+        .filter((item): item is any => item !== null)
+        .map(item => ({
+          ...item,
+          category: item.categories || null
+        }));
+      
+      setFavorites(formattedFavorites);
+    } catch (err) {
+      console.error('Favorites fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch favorites');
     }
   };
 
@@ -247,7 +294,8 @@ export const useProfile = (userId?: string) => {
       await Promise.all([
         fetchProfile(),
         fetchUserItems(),
-        fetchUserActivity()
+        fetchUserActivity(),
+        fetchFavorites()
       ]);
     } catch (err) {
       console.error('Error refreshing profile data:', err);
@@ -259,6 +307,7 @@ export const useProfile = (userId?: string) => {
   return {
     profile,
     items,
+    favorites,
     activity,
     loading,
     error,
