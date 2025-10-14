@@ -54,7 +54,7 @@ const App = () => (
                 <Messages />
               </ProtectedRoute>
             } />
-            <Route path="/profile/:username?" element={
+            <Route path="/profile/:userId?" element={
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>

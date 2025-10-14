@@ -16,12 +16,12 @@ import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
-  const { username } = useParams();
+  const { userId } = useParams();
   const { user } = useAuth();
-  const { profile, items, activity, loading, error, refreshData } = useProfile();
+  const { profile, items, activity, loading, error, refreshData } = useProfile(userId);
   const { toast } = useToast();
   
-  const isOwnProfile = !username; // If no username in URL, it's the current user's profile
+  const isOwnProfile = !userId; // If no userId in URL, it's the current user's profile
 
   const handleDeleteItem = async (itemId: string) => {
     try {
