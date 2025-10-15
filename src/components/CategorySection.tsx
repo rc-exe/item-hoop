@@ -104,9 +104,9 @@ const CategorySection = () => {
         })
       );
 
-      // Filter out null values and categories with 0 items
+      // Filter out null values but keep all categories including those with 0 items
       const validCategories = categoriesWithCounts
-        .filter((cat): cat is CategoryWithCount => cat !== null && cat.count > 0);
+        .filter((cat): cat is CategoryWithCount => cat !== null);
 
       setCategories(validCategories);
     } catch (error) {
@@ -135,25 +135,6 @@ const CategorySection = () => {
     );
   }
 
-  if (categories.length === 0) {
-    return (
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <FadeInUp className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
-              Browse by Category
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
-              Discover items available for exchange across popular categories
-            </p>
-          </FadeInUp>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No items available yet</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="py-16 bg-muted/30">

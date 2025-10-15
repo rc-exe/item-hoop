@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MapPin, Clock, Filter, SlidersHorizontal } from "lucide-react";
+import { MapPin, Clock, Filter, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -315,17 +315,6 @@ const Browse = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleFavorite(item.id);
-                    }}
-                  >
-                    <Heart className={`w-4 h-4 ${favorites.has(item.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
                   {item.categories && (
                     <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
                       {item.categories.name}
