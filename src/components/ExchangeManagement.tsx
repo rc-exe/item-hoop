@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { MessageCircle, Star, CheckCircle, Clock } from 'lucide-react';
+import { MessageCircle, Star, CheckCircle, Clock, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './ui/use-toast';
 import { ChatWindow } from './ChatWindow';
+import { toast as sonnerToast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -107,6 +108,25 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
     }
   };
 
+  const handleExchangeResponse = async (action: 'accept' | 'reject') => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke('respond-to-exchange', {
+        body: { exchange_id: exchange.id, action }
+      });
+
+      if (error) throw error;
+      
+      sonnerToast.success(`Exchange request ${action}ed successfully`);
+      onUpdate();
+    } catch (error) {
+      console.error(`Error ${action}ing exchange:`, error);
+      sonnerToast.error(`Failed to ${action} exchange request`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const rateExchange = async () => {
     if (rating === 0) {
       toast({
@@ -172,7 +192,7 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
             </div>
           )}
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -182,6 +202,37 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
               <MessageCircle className="h-4 w-4" />
               <span>Chat</span>
             </Button>
+
+            {exchange.status === 'pending' && isOwner && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExchangeResponse('reject')}
+                  disabled={loading}
+                  className="flex items-center space-x-1"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Decline</span>
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleExchangeResponse('accept')}
+                  disabled={loading}
+                  className="flex items-center space-x-1"
+                >
+                  <Check className="h-4 w-4" />
+                  <span>Accept</span>
+                </Button>
+              </>
+            )}
+
+            {exchange.status === 'pending' && !isOwner && (
+              <Badge variant="secondary" className="flex items-center space-x-1">
+                <Clock className="h-3 w-3" />
+                <span>Awaiting response</span>
+              </Badge>
+            )}
 
             {exchange.status === 'accepted' && (
               <Dialog>
