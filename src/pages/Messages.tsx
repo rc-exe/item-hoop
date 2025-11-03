@@ -182,15 +182,15 @@ export const Messages = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={conversation.other_user.avatar_url} />
+                        <AvatarImage src={conversation.other_user.avatar_url || undefined} />
                         <AvatarFallback>
-                          {conversation.other_user.username.charAt(0).toUpperCase()}
+                          {conversation.other_user.username?.charAt(0)?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold">{conversation.other_user.username}</h3>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold">{conversation.other_user.username || 'Unknown User'}</h3>
                           {conversation.unread_count > 0 && (
                             <Badge variant="secondary" className="text-xs">
                               {conversation.unread_count}
