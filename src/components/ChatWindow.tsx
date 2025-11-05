@@ -61,14 +61,24 @@ export const ChatWindow = ({
         const { data, error } = await supabase
           .from('messages')
           .select(`
-            *
+            *,
+            sender:sender_id(username, avatar_url)
           `)
           .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
-          .eq('exchange_id', exchangeId || null)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
-        setMessages(data || []);
+        
+        // Map the data to match our Message interface
+        const formattedMessages = (data || []).map((msg: any) => ({
+          ...msg,
+          sender: msg.sender_id ? {
+            username: msg.sender?.username || 'Unknown',
+            avatar_url: msg.sender?.avatar_url || ''
+          } : undefined
+        }));
+        
+        setMessages(formattedMessages);
       } catch (error) {
         console.error('Error fetching messages:', error);
         toast({
