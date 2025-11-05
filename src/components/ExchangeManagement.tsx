@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { MessageCircle, Star, CheckCircle, Clock, Check, X } from 'lucide-react';
+import { MessageCircle, CheckCircle, Clock, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './ui/use-toast';
 import { ChatWindow } from './ChatWindow';
+import { RatingDialog } from './RatingDialog';
 import { toast as sonnerToast } from 'sonner';
 import {
   Dialog,
@@ -54,12 +55,39 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
   const { toast } = useToast();
   const [showChat, setShowChat] = useState(false);
   const [completionNotes, setCompletionNotes] = useState('');
-  const [rating, setRating] = useState(0);
-  const [ratingComment, setRatingComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   const isOwner = exchange.owner.id === currentUserId;
   const otherUser = isOwner ? exchange.requester : exchange.owner;
+
+  useEffect(() => {
+    if (exchange.status === 'completed') {
+      checkIfRated();
+    }
+  }, [exchange.status, exchange.id]);
+
+  const checkIfRated = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('exchange_ratings')
+        .select('id')
+        .eq('exchange_id', exchange.id)
+        .eq('rater_id', currentUserId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setHasRated(!!data);
+      
+      // Automatically show rating dialog if not rated yet
+      if (!data) {
+        setShowRatingDialog(true);
+      }
+    } catch (error) {
+      console.error('Error checking rating:', error);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -127,44 +155,10 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
     }
   };
 
-  const rateExchange = async () => {
-    if (rating === 0) {
-      toast({
-        title: "Error",
-        description: "Please select a rating",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.functions.invoke('rate-exchange', {
-        body: {
-          exchange_id: exchange.id,
-          rating,
-          comment: ratingComment
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Rating submitted successfully",
-      });
-      
-      onUpdate();
-    } catch (error) {
-      console.error('Error rating exchange:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit rating",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleRatingSubmit = () => {
+    setShowRatingDialog(false);
+    setHasRated(true);
+    onUpdate();
   };
 
   return (
@@ -269,54 +263,21 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
               </Dialog>
             )}
 
-            {exchange.status === 'completed' && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center space-x-1">
-                    <Star className="h-4 w-4" />
-                    <span>Rate</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Rate Your Experience</DialogTitle>
-                    <DialogDescription>
-                      How was your exchange with {otherUser.username}?
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Rating</Label>
-                      <div className="flex space-x-1 mt-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Button
-                            key={star}
-                            variant={rating >= star ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setRating(star)}
-                          >
-                            <Star className="h-4 w-4" />
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="comment">Comment (Optional)</Label>
-                      <Textarea
-                        id="comment"
-                        value={ratingComment}
-                        onChange={(e) => setRatingComment(e.target.value)}
-                        placeholder="Share your experience..."
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={rateExchange} disabled={loading}>
-                      {loading ? 'Submitting...' : 'Submit Rating'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+            {exchange.status === 'completed' && !hasRated && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowRatingDialog(true)}
+              >
+                Rate Exchange
+              </Button>
+            )}
+            
+            {exchange.status === 'completed' && hasRated && (
+              <Badge variant="secondary">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Rated
+              </Badge>
             )}
           </div>
         </CardContent>
@@ -331,6 +292,17 @@ export const ExchangeManagement = ({ exchange, currentUserId, onUpdate }: Exchan
           onClose={() => setShowChat(false)}
         />
       )}
+
+      <RatingDialog
+        open={showRatingDialog}
+        onOpenChange={(open) => {
+          setShowRatingDialog(open);
+          if (!open) handleRatingSubmit();
+        }}
+        exchangeId={exchange.id}
+        ratedUserId={otherUser.id}
+        ratedUserName={otherUser.username}
+      />
     </>
   );
 };

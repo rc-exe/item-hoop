@@ -7,11 +7,9 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Clock, Filter, SlidersHorizontal } from "lucide-react";
+import { MapPin, Clock, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 
 interface Item {
   id: string;
@@ -32,15 +30,9 @@ const Browse = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const { user } = useAuth();
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchItems();
-    if (user) {
-      fetchFavorites();
-    }
 
     // Real-time updates for items
     const itemsChannel = supabase
@@ -58,28 +50,10 @@ const Browse = () => {
       )
       .subscribe();
 
-    // Real-time updates for favorites
-    const favoritesChannel = supabase
-      .channel('browse-favorites-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'favorites',
-          filter: `user_id=eq.${user?.id}`
-        },
-        () => {
-          if (user) fetchFavorites();
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(itemsChannel);
-      supabase.removeChannel(favoritesChannel);
     };
-  }, [user]);
+  }, []);
 
   const fetchItems = async () => {
     try {
@@ -113,70 +87,6 @@ const Browse = () => {
       console.error('Error fetching items:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchFavorites = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('favorites')
-        .select('item_id')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      setFavorites(new Set(data?.map(f => f.item_id) || []));
-    } catch (error) {
-      console.error('Error fetching favorites:', error);
-    }
-  };
-
-  const toggleFavorite = async (itemId: string) => {
-    if (!user) {
-      toast({
-        title: "Login required",
-        description: "Please log in to favorite items",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isFavorited = favorites.has(itemId);
-
-    try {
-      if (isFavorited) {
-        const { error } = await supabase
-          .from('favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('item_id', itemId);
-
-        if (error) throw error;
-
-        toast({
-          title: "Removed from favorites",
-          description: "Item removed from your favorites",
-        });
-      } else {
-        const { error } = await supabase
-          .from('favorites')
-          .insert({ user_id: user.id, item_id: itemId });
-
-        if (error) throw error;
-
-        toast({
-          title: "Added to favorites",
-          description: "Item added to your favorites",
-        });
-      }
-    } catch (error: any) {
-      console.error('Error toggling favorite:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update favorites",
-        variant: "destructive",
-      });
     }
   };
 
