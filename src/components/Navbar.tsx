@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Navbar = () => {
   const { user, profile, signOut } = useAuth();
@@ -47,6 +48,8 @@ const Navbar = () => {
 
           {/* Navigation Actions */}
           <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            
             {user ? (
               <>
                 <NotificationDropdown />

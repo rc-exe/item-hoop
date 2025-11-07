@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, Clock } from "lucide-react";
+import { MapPin, Clock } from "lucide-react";
 import { FadeInUp } from "./ScrollAnimations";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,19 +128,6 @@ const FeaturedItems = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                      >
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Heart className="w-4 h-4" />
-                        </Button>
-                      </motion.div>
                       {item.categories && (
                         <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
                           {item.categories.name}
