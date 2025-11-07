@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Repeat, Shield, Users } from "lucide-react";
 import { motion } from "framer-motion";
-import heroImage from "@/assets/hero-exchange.jpg";
+import heroImage from "@/assets/hero-exchange-minimal.jpg";
 import { FadeInUp, FadeInLeft, FadeInRight } from "./ScrollAnimations";
 import LottieAnimation from "./LottieAnimation";
 import { useEffect, useState } from "react";
