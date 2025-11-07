@@ -4,8 +4,51 @@ import { motion } from "framer-motion";
 import heroImage from "@/assets/hero-exchange.jpg";
 import { FadeInUp, FadeInLeft, FadeInRight } from "./ScrollAnimations";
 import LottieAnimation from "./LottieAnimation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const HeroSection = () => {
+  const [memberCount, setMemberCount] = useState(0);
+  const [exchangeCount, setExchangeCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      // Fetch member count
+      const { count: members } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      // Fetch exchange count
+      const { count: exchanges } = await supabase
+        .from('exchanges')
+        .select('*', { count: 'exact', head: true });
+
+      setMemberCount(members || 0);
+      setExchangeCount(exchanges || 0);
+    };
+
+    fetchCounts();
+
+    // Set up realtime subscriptions
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        fetchCounts();
+      })
+      .subscribe();
+
+    const exchangesChannel = supabase
+      .channel('exchanges-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'exchanges' }, () => {
+        fetchCounts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(exchangesChannel);
+    };
+  }, []);
   return (
     <section className="relative bg-gradient-to-br from-background via-muted/30 to-primary/5 py-20 lg:py-32 overflow-hidden">
       {/* Floating Animation Elements */}
@@ -83,8 +126,8 @@ const HeroSection = () => {
               className="flex items-center space-x-8 pt-8"
             >
               {[
-                { icon: Users, text: "10,000+ Members", delay: 0.7 },
-                { icon: Repeat, text: "50,000+ Exchanges", delay: 0.8 },
+                { icon: Users, text: `${memberCount.toLocaleString()}+ Members`, delay: 0.7 },
+                { icon: Repeat, text: `${exchangeCount.toLocaleString()}+ Exchanges`, delay: 0.8 },
                 { icon: Shield, text: "100% Secure", delay: 0.9 }
               ].map(({ icon: Icon, text, delay }, index) => (
                 <motion.div 

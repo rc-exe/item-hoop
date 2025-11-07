@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 const Navbar = () => {
   const { user, profile, signOut } = useAuth();
@@ -48,11 +49,7 @@ const Navbar = () => {
           <div className="flex items-center space-x-2">
             {user ? (
               <>
-                <Link to="/notifications">
-                  <Button variant="ghost" size="sm" className="hidden md:flex">
-                    <Bell className="w-4 h-4" />
-                  </Button>
-                </Link>
+                <NotificationDropdown />
                 
                 <Link to="/messages">
                   <Button variant="ghost" size="sm" className="hidden md:flex">
