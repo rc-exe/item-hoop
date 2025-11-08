@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, User, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, User, Loader2, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Register = () => {
@@ -28,8 +28,34 @@ const Register = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const validatePassword = (password: string) => {
+    const hasMinLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    
+    return {
+      hasMinLength,
+      hasUpperCase,
+      hasSpecialChar,
+      hasNumber,
+      isValid: hasMinLength && hasUpperCase && hasSpecialChar && hasNumber
+    };
+  };
+
+  const passwordValidation = validatePassword(formData.password);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!passwordValidation.isValid) {
+      toast({
+        title: "Invalid Password",
+        description: "Please meet all password requirements.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -145,6 +171,7 @@ const Register = () => {
                     onChange={(e) => handleChange("password", e.target.value)}
                     required
                     disabled={loading}
+                    className={formData.password && !passwordValidation.isValid ? "border-destructive" : ""}
                   />
                   <Button
                     type="button"
@@ -161,6 +188,28 @@ const Register = () => {
                     )}
                   </Button>
                 </div>
+                
+                {/* Password Requirements */}
+                {formData.password && (
+                  <div className="space-y-1 mt-2 text-xs">
+                    <div className={`flex items-center gap-2 ${passwordValidation.hasMinLength ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.hasMinLength ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>At least 8 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.hasUpperCase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.hasUpperCase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>At least 1 uppercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.hasSpecialChar ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>At least 1 special character</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {passwordValidation.hasNumber ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>At least 1 number</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
