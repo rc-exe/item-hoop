@@ -37,10 +37,10 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">Quick Links</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Browse Items</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">List an Item</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">How It Works</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Categories</a></li>
+              <li><a href="/browse" className="hover:text-primary transition-colors">Browse Items</a></li>
+              <li><a href="/list-item" className="hover:text-primary transition-colors">List an Item</a></li>
+              <li><a href="/how-it-works" className="hover:text-primary transition-colors">How It Works</a></li>
+              <li><a href="/browse" className="hover:text-primary transition-colors">Categories</a></li>
             </ul>
           </div>
 
@@ -78,9 +78,8 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
           <p>&copy; 2024 BarterHub. All rights reserved.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-primary transition-colors">Cookie Policy</a>
+            <a href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</a>
+            <a href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</a>
           </div>
         </div>
       </div>
