@@ -79,9 +79,31 @@ const Register = () => {
       full_name: formData.name,
     });
 
-    if (!error) {
-      navigate("/login");
+    if (error) {
+      // Check for specific error types
+      if (error.message.toLowerCase().includes("already registered") || 
+          error.message.toLowerCase().includes("email already in use") ||
+          error.message.toLowerCase().includes("user already exists")) {
+        toast({
+          title: "Email Already in Use",
+          description: "This email is already registered. Please use a different email or try logging in.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+      return;
     }
+
+    toast({
+      title: "Account Created!",
+      description: "Your account has been created successfully. Please log in.",
+    });
+    navigate("/login");
   };
 
   const handleGoogleRegister = async () => {
