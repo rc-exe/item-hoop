@@ -537,13 +537,16 @@ const ItemDetail = () => {
                     <Card key={exchange.id} className="p-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Avatar className="w-8 h-8">
+                          <Avatar className="w-8 h-8 cursor-pointer" onClick={() => navigate(`/profile/${exchange.requester_id}`)}>
                             <AvatarFallback>
                               {(exchange.requester.username || exchange.requester.full_name || 'U').charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="text-sm font-medium">
+                            <p 
+                              className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => navigate(`/profile/${exchange.requester_id}`)}
+                            >
                               {exchange.requester.username || exchange.requester.full_name || 'User'}
                             </p>
                             <p className="text-xs text-muted-foreground">
