@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpDown, Heart, Share2, Flag, Star, Calendar, Eye, MessageSquare, Loader2 } from "lucide-react";
+import { ArrowUpDown, Heart, Share2, Flag, Star, Calendar, Eye, MessageSquare, Loader2, Pin, Trash2 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
@@ -60,9 +60,12 @@ const ItemDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [pendingExchanges, setPendingExchanges] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
     fetchItemDetails();
+    fetchComments();
     if (user) {
       fetchUserItems();
       checkFavoriteStatus();
@@ -71,27 +74,51 @@ const ItemDetail = () => {
   }, [id, user]);
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!id) return;
 
-    // Real-time updates for favorites
-    const favoritesChannel = supabase
-      .channel('item-detail-favorites')
+    // Real-time updates for comments
+    const commentsChannel = supabase
+      .channel('item-comments')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'favorites',
-          filter: `user_id=eq.${user.id}`
+          table: 'comments',
+          filter: `item_id=eq.${id}`
         },
         () => {
-          checkFavoriteStatus();
+          fetchComments();
         }
       )
       .subscribe();
 
+    // Real-time updates for favorites
+    if (user) {
+      const favoritesChannel = supabase
+        .channel('item-detail-favorites')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'favorites',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            checkFavoriteStatus();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(favoritesChannel);
+        supabase.removeChannel(commentsChannel);
+      };
+    }
+
     return () => {
-      supabase.removeChannel(favoritesChannel);
+      supabase.removeChannel(commentsChannel);
     };
   }, [user, id]);
 
@@ -198,6 +225,106 @@ const ItemDetail = () => {
 
     if (!error && data) {
       setPendingExchanges(data);
+    }
+  };
+
+  const fetchComments = async () => {
+    if (!id) return;
+
+    const { data, error } = await supabase
+      .from('comments')
+      .select(`
+        *,
+        profiles (username, full_name, avatar_url)
+      `)
+      .eq('item_id', id)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setComments(data);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please log in to comment",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (!newComment.trim() || !id) return;
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          item_id: id,
+          user_id: user.id,
+          content: newComment.trim()
+        });
+
+      if (error) throw error;
+
+      setNewComment("");
+      toast({
+        title: "Comment added",
+        description: "Your comment has been posted",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePinComment = async (commentId: string, isPinned: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ is_pinned: !isPinned })
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      toast({
+        title: isPinned ? "Comment unpinned" : "Comment pinned",
+        description: isPinned ? "Comment has been unpinned" : "Comment has been pinned to the top",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment deleted",
+        description: "The comment has been removed",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete comment",
+        variant: "destructive",
+      });
     }
   };
 
@@ -566,6 +693,116 @@ const ItemDetail = () => {
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Comments Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-6">Comments ({comments.length})</h2>
+          
+          {/* Add Comment */}
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <Textarea
+                  placeholder={user ? "Add a comment..." : "Please log in to comment"}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  disabled={!user}
+                  rows={3}
+                />
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleAddComment}
+                    disabled={!user || !newComment.trim()}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Post Comment
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Comments List */}
+          <div className="space-y-4">
+            {comments.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  No comments yet. Be the first to comment!
+                </CardContent>
+              </Card>
+            ) : (
+              comments.map((comment) => (
+                <Card key={comment.id} className={comment.is_pinned ? "border-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Avatar 
+                          className="w-10 h-10 cursor-pointer" 
+                          onClick={() => navigate(`/profile/${comment.user_id}`)}
+                        >
+                          <AvatarImage src={comment.profiles?.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {(comment.profiles?.username || comment.profiles?.full_name || 'U').charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p 
+                              className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => navigate(`/profile/${comment.user_id}`)}
+                            >
+                              {comment.profiles?.username || comment.profiles?.full_name || 'User'}
+                            </p>
+                            {comment.is_pinned && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Pin className="w-3 h-3 mr-1" />
+                                Pinned
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {new Date(comment.created_at).toLocaleString()}
+                          </p>
+                          <p className="text-foreground whitespace-pre-wrap break-words">
+                            {comment.content}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-1">
+                        {/* Pin button - only for item owner */}
+                        {user?.id === item.user_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePinComment(comment.id, comment.is_pinned)}
+                          >
+                            <Pin className={`w-4 h-4 ${comment.is_pinned ? 'fill-current' : ''}`} />
+                          </Button>
+                        )}
+                        
+                        {/* Delete button - for comment author or item owner */}
+                        {(user?.id === comment.user_id || user?.id === item.user_id) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteComment(comment.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
           </div>
         </div>
