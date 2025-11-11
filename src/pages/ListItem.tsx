@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Camera, Upload } from "lucide-react";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Camera, Upload, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,15 +29,28 @@ const categories = [
   "Other"
 ];
 
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
+  description: z.string().min(1, "Description is required").max(1000, "Description must be less than 1000 characters"),
+  category: z.string().min(1, "Category is required"),
+  condition: z.string().min(1, "Condition is required"),
+  location: z.string().min(1, "Location is required").max(200, "Location must be less than 200 characters"),
+  lookingFor: z.string().min(1, "Please specify what you're looking for").max(500, "Must be less than 500 characters")
+});
+
 const ListItem = () => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const form = useForm({
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -45,6 +60,12 @@ const ListItem = () => {
       lookingFor: ""
     }
   });
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -133,6 +154,80 @@ const ListItem = () => {
   const removeImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const getUserLocation = () => {
+    setIsGettingLocation(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Use Nominatim reverse geocoding API (free, no API key required)
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`
+            );
+            const data = await response.json();
+            
+            const city = data.address?.city || data.address?.town || data.address?.village || '';
+            const state = data.address?.state || '';
+            const country = data.address?.country || '';
+            
+            const location = [city, state, country].filter(Boolean).join(', ');
+            form.setValue('location', location);
+            
+            toast({
+              title: "Location detected",
+              description: `Set to: ${location}`,
+            });
+          } catch (error) {
+            console.error('Error getting location name:', error);
+            toast({
+              title: "Error",
+              description: "Failed to get location name",
+              variant: "destructive",
+            });
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          toast({
+            title: "Location error",
+            description: "Please allow location access or enter manually",
+            variant: "destructive",
+          });
+          setIsGettingLocation(false);
+        }
+      );
+    } else {
+      toast({
+        title: "Not supported",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
+      setIsGettingLocation(false);
+    }
+  };
+
+  const searchLocation = async (query: string) => {
+    if (query.length < 3) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+      );
+      const data = await response.json();
+      setLocationSuggestions(data);
+      setShowLocationSuggestions(true);
+    } catch (error) {
+      console.error('Error searching location:', error);
+    }
   };
 
   const onSubmit = async (data: any) => {
@@ -377,12 +472,50 @@ const ListItem = () => {
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. New York, NY" {...field} />
-                      </FormControl>
+                      <FormLabel>Location</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <div className="flex-1 relative">
+                            <Input 
+                              placeholder="e.g. New York, NY" 
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                searchLocation(e.target.value);
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => setShowLocationSuggestions(false), 200);
+                              }}
+                            />
+                            {showLocationSuggestions && locationSuggestions.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                                {locationSuggestions.map((suggestion, index) => (
+                                  <div
+                                    key={index}
+                                    className="px-4 py-2 hover:bg-muted cursor-pointer"
+                                    onClick={() => {
+                                      form.setValue('location', suggestion.display_name);
+                                      setShowLocationSuggestions(false);
+                                    }}
+                                  >
+                                    {suggestion.display_name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={getUserLocation}
+                          disabled={isGettingLocation}
+                        >
+                          <MapPin className="w-4 h-4" />
+                        </Button>
+                      </div>
                       <FormDescription>
-                        Help others know where the item is located
+                        Help others know where the item is located. Click the pin icon to auto-detect.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

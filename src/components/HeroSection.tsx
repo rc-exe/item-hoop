@@ -6,8 +6,10 @@ import { FadeInUp, FadeInLeft, FadeInRight } from "./ScrollAnimations";
 import LottieAnimation from "./LottieAnimation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const HeroSection = () => {
+  const { user } = useAuth();
   const [memberCount, setMemberCount] = useState(0);
   const [exchangeCount, setExchangeCount] = useState(0);
 
@@ -91,23 +93,25 @@ const HeroSection = () => {
               </motion.p>
             </div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button variant="hero" size="lg" className="shadow-hero font-medium" asChild>
-                  <a href="/register">
-                    Start Exchanging
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </a>
-                </Button>
-              </motion.div>
+              {!user && (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button variant="hero" size="lg" className="shadow-hero font-medium" asChild>
+                    <a href="/register">
+                      Start Exchanging
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </a>
+                  </Button>
+                </motion.div>
+              )}
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

@@ -59,12 +59,14 @@ const ItemDetail = () => {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [pendingExchanges, setPendingExchanges] = useState<any[]>([]);
 
   useEffect(() => {
     fetchItemDetails();
     if (user) {
       fetchUserItems();
       checkFavoriteStatus();
+      fetchPendingExchanges();
     }
   }, [id, user]);
 
@@ -174,6 +176,28 @@ const ItemDetail = () => {
 
     if (!error) {
       setIsFavorited(!!data);
+    }
+  };
+
+  const fetchPendingExchanges = async () => {
+    if (!user || !id) return;
+
+    const { data, error } = await supabase
+      .from('exchanges')
+      .select(`
+        id,
+        status,
+        requester_id,
+        owner_id,
+        created_at,
+        requester:profiles!exchanges_requester_id_fkey(username, full_name),
+        owner:profiles!exchanges_owner_id_fkey(username, full_name)
+      `)
+      .eq('owner_item_id', id)
+      .eq('status', 'pending');
+
+    if (!error && data) {
+      setPendingExchanges(data);
     }
   };
 
@@ -501,6 +525,43 @@ const ItemDetail = () => {
               <div>
                 <h3 className="font-semibold mb-3">Description</h3>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{item.description}</p>
+              </div>
+            )}
+
+            {/* Pending Exchanges for Owner */}
+            {user?.id === item.user_id && pendingExchanges.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-3">Pending Exchange Requests ({pendingExchanges.length})</h3>
+                <div className="space-y-2">
+                  {pendingExchanges.map((exchange) => (
+                    <Card key={exchange.id} className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback>
+                              {(exchange.requester.username || exchange.requester.full_name || 'U').charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {exchange.requester.username || exchange.requester.full_name || 'User'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(exchange.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate('/dashboard?tab=exchanges')}
+                        >
+                          View Request
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
           </div>
