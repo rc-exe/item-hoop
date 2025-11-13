@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +63,7 @@ const ItemDetail = () => {
   const [pendingExchanges, setPendingExchanges] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
   useEffect(() => {
     fetchItemDetails();
@@ -699,112 +701,135 @@ const ItemDetail = () => {
 
         <Separator className="my-8" />
 
-        {/* Comments Section */}
+        {/* Comments Button */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">Comments ({comments.length})</h2>
-          
-          {/* Add Comment */}
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <Textarea
-                  placeholder={user ? "Add a comment..." : "Please log in to comment"}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  disabled={!user}
-                  rows={3}
-                />
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={handleAddComment}
-                    disabled={!user || !newComment.trim()}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Post Comment
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Sheet open={isCommentsOpen} onOpenChange={setIsCommentsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="lg" className="w-full">
+                <MessageSquare className="w-5 h-5 mr-2" />
+                View Comments ({comments.length})
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Comments ({comments.length})</SheetTitle>
+                <SheetDescription>
+                  Share your thoughts about this item
+                </SheetDescription>
+              </SheetHeader>
 
-          {/* Comments List */}
-          <div className="space-y-4">
-            {comments.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  No comments yet. Be the first to comment!
-                </CardContent>
-              </Card>
-            ) : (
-              comments.map((comment) => (
-                <Card key={comment.id} className={comment.is_pinned ? "border-primary" : ""}>
+              <div className="mt-6 space-y-6">
+                {/* Add Comment */}
+                <Card>
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <Avatar 
-                          className="w-10 h-10 cursor-pointer" 
-                          onClick={() => navigate(`/profile/${comment.user_id}`)}
+                    <div className="space-y-3">
+                      <Textarea
+                        placeholder={user ? "Add a comment..." : "Please log in to comment"}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        disabled={!user}
+                        rows={3}
+                      />
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={handleAddComment}
+                          disabled={!user || !newComment.trim()}
                         >
-                          <AvatarImage src={comment.profiles?.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {(comment.profiles?.username || comment.profiles?.full_name || 'U').charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p 
-                              className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors"
-                              onClick={() => navigate(`/profile/${comment.user_id}`)}
-                            >
-                              {comment.profiles?.username || comment.profiles?.full_name || 'User'}
-                            </p>
-                            {comment.is_pinned && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Pin className="w-3 h-3 mr-1" />
-                                Pinned
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {new Date(comment.created_at).toLocaleString()}
-                          </p>
-                          <p className="text-foreground whitespace-pre-wrap break-words">
-                            {comment.content}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-1">
-                        {/* Pin button - only for item owner */}
-                        {user?.id === item.user_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handlePinComment(comment.id, comment.is_pinned)}
-                          >
-                            <Pin className={`w-4 h-4 ${comment.is_pinned ? 'fill-current' : ''}`} />
-                          </Button>
-                        )}
-                        
-                        {/* Delete button - for comment author or item owner */}
-                        {(user?.id === comment.user_id || user?.id === item.user_id) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteComment(comment.id)}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        )}
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Post Comment
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
+
+                {/* Comments List */}
+                <div className="space-y-4">
+                  {comments.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center text-muted-foreground">
+                        No comments yet. Be the first to comment!
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    comments.map((comment) => (
+                      <Card key={comment.id} className={comment.is_pinned ? "border-primary" : ""}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              <Avatar 
+                                className="w-10 h-10 cursor-pointer" 
+                                onClick={() => {
+                                  navigate(`/profile/${comment.user_id}`);
+                                  setIsCommentsOpen(false);
+                                }}
+                              >
+                                <AvatarImage src={comment.profiles?.avatar_url || undefined} />
+                                <AvatarFallback>
+                                  {(comment.profiles?.username || comment.profiles?.full_name || 'U').charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p 
+                                    className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => {
+                                      navigate(`/profile/${comment.user_id}`);
+                                      setIsCommentsOpen(false);
+                                    }}
+                                  >
+                                    {comment.profiles?.username || comment.profiles?.full_name || 'User'}
+                                  </p>
+                                  {comment.is_pinned && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      <Pin className="w-3 h-3 mr-1" />
+                                      Pinned
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {new Date(comment.created_at).toLocaleString()}
+                                </p>
+                                <p className="text-foreground whitespace-pre-wrap break-words">
+                                  {comment.content}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-1">
+                              {/* Pin button - only for item owner */}
+                              {user?.id === item?.user_id && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handlePinComment(comment.id, comment.is_pinned)}
+                                >
+                                  <Pin className={`w-4 h-4 ${comment.is_pinned ? 'fill-current' : ''}`} />
+                                </Button>
+                              )}
+                              
+                              {/* Delete button - for comment author or item owner */}
+                              {(user?.id === comment.user_id || user?.id === item?.user_id) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
 
         <Separator className="my-8" />
