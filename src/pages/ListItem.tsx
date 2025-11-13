@@ -17,16 +17,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const categories = [
+  "Books",
   "Electronics",
-  "Books & Media",
-  "Fashion & Accessories", 
+  "Gaming",
+  "Clothing",
   "Home & Garden",
-  "Sports & Outdoors",
-  "Musical Instruments",
-  "Art & Crafts",
-  "Toys & Games",
-  "Tools & Equipment",
-  "Other"
+  "Music",
+  "Computers",
+  "Sports"
 ];
 
 const formSchema = z.object({
@@ -251,6 +249,17 @@ const ListItem = () => {
 
     setUploading(true);
     try {
+      // Get category ID from category name
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', data.category)
+        .single();
+
+      if (categoryError) {
+        console.error('Error fetching category:', categoryError);
+      }
+
       // Upload images to storage
       const imageUrls: string[] = [];
       for (const image of selectedImages) {
@@ -278,7 +287,7 @@ const ListItem = () => {
           user_id: user.id,
           title: data.title,
           description: data.description,
-          category_id: null,
+          category_id: categoryData?.id || null,
           condition: data.condition,
           location: data.location || null,
           images: imageUrls,
