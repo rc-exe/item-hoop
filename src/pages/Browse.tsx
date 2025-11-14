@@ -20,6 +20,7 @@ interface Item {
   created_at: string;
   categories: { name: string; icon: string | null } | null;
   profiles: { username: string | null; full_name: string | null; avatar_url: string | null; rating: number; total_exchanges: number } | null;
+  comment_count?: number;
 }
 
 const Browse = () => {
@@ -82,7 +83,23 @@ const Browse = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setItems(data || []);
+      
+      // Fetch comment counts for each item
+      const itemsWithCounts = await Promise.all(
+        (data || []).map(async (item) => {
+          const { count } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('item_id', item.id);
+          
+          return {
+            ...item,
+            comment_count: count || 0
+          };
+        })
+      );
+      
+      setItems(itemsWithCounts);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -260,6 +277,11 @@ const Browse = () => {
                           ⭐ {item.profiles?.rating || 0} ({item.profiles?.total_exchanges || 0} exchanges)
                         </span>
                       </div>
+                      {item.comment_count !== undefined && item.comment_count > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          💬 {item.comment_count}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardContent>

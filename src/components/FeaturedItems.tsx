@@ -25,6 +25,7 @@ interface Item {
   categories: {
     name: string;
   } | null;
+  comment_count?: number;
 }
 
 const FeaturedItems = () => {
@@ -46,7 +47,23 @@ const FeaturedItems = () => {
         .limit(6);
 
       if (error) throw error;
-      setItems(data || []);
+      
+      // Fetch comment counts for each item
+      const itemsWithCounts = await Promise.all(
+        (data || []).map(async (item) => {
+          const { count } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('item_id', item.id);
+          
+          return {
+            ...item,
+            comment_count: count || 0
+          };
+        })
+      );
+      
+      setItems(itemsWithCounts);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -163,6 +180,11 @@ const FeaturedItems = () => {
                               ⭐ {item.profiles?.rating?.toFixed(1) || "0.0"} ({item.profiles?.total_exchanges || 0} exchanges)
                             </span>
                           </div>
+                          {item.comment_count !== undefined && item.comment_count > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              💬 {item.comment_count}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </CardContent>
