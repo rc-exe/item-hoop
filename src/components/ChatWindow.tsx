@@ -17,10 +17,6 @@ interface Message {
   message_type: string;
   created_at: string;
   exchange_id?: string | null;
-  sender?: {
-    username: string;
-    avatar_url: string;
-  };
 }
 
 interface ChatWindowProps {
@@ -60,25 +56,12 @@ export const ChatWindow = ({
       try {
         const { data, error } = await supabase
           .from('messages')
-          .select(`
-            *,
-            sender:sender_id(username, avatar_url)
-          `)
+          .select('*')
           .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
-        
-        // Map the data to match our Message interface
-        const formattedMessages = (data || []).map((msg: any) => ({
-          ...msg,
-          sender: msg.sender_id ? {
-            username: msg.sender?.username || 'Unknown',
-            avatar_url: msg.sender?.avatar_url || ''
-          } : undefined
-        }));
-        
-        setMessages(formattedMessages);
+        setMessages(data || []);
       } catch (error) {
         console.error('Error fetching messages:', error);
         toast({
@@ -93,7 +76,6 @@ export const ChatWindow = ({
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel(`chat-${user.id}-${receiverId}`)
       .on(
@@ -104,14 +86,13 @@ export const ChatWindow = ({
           table: 'messages'
         },
         (payload) => {
-          const newMessage = payload.new as Message;
-          // Only add message if it's part of this conversation
+          const newMsg = payload.new as Message;
           if (
-            (newMessage.sender_id === user.id && newMessage.receiver_id === receiverId) ||
-            (newMessage.sender_id === receiverId && newMessage.receiver_id === user.id)
+            (newMsg.sender_id === user.id && newMsg.receiver_id === receiverId) ||
+            (newMsg.sender_id === receiverId && newMsg.receiver_id === user.id)
           ) {
-            if (exchangeId === undefined || newMessage.exchange_id === exchangeId || newMessage.exchange_id === null) {
-              setMessages(prev => [...prev, newMessage]);
+            if (exchangeId === undefined || newMsg.exchange_id === exchangeId || newMsg.exchange_id === null) {
+              setMessages(prev => [...prev, newMsg]);
             }
           }
         }
@@ -137,7 +118,6 @@ export const ChatWindow = ({
       });
 
       if (error) throw error;
-
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -158,7 +138,7 @@ export const ChatWindow = ({
 
   if (loading) {
     return (
-      <Card className="fixed bottom-4 right-4 w-96 h-96 p-4 bg-background border shadow-lg">
+      <Card className="fixed bottom-4 right-4 w-96 h-[28rem] p-4 bg-background border shadow-lg z-50">
         <div className="flex items-center justify-center h-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
@@ -167,7 +147,7 @@ export const ChatWindow = ({
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 h-96 bg-background border shadow-lg flex flex-col">
+    <Card className="fixed bottom-4 right-4 w-96 h-[28rem] bg-background border shadow-lg flex flex-col z-50">
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -190,14 +170,14 @@ export const ChatWindow = ({
             className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[70%] rounded-lg p-2 text-sm ${
+              className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
                 message.sender_id === user?.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted'
+                  ? 'bg-primary text-primary-foreground rounded-br-md'
+                  : 'bg-muted rounded-bl-md'
               }`}
             >
               <p>{message.content}</p>
-              <p className={`text-xs mt-1 opacity-70`}>
+              <p className="text-xs mt-1 opacity-70">
                 {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
               </p>
             </div>
@@ -214,9 +194,9 @@ export const ChatWindow = ({
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="flex-1"
+            className="flex-1 rounded-full"
           />
-          <Button onClick={sendMessage} size="sm">
+          <Button onClick={sendMessage} size="icon" className="rounded-full" disabled={!newMessage.trim()}>
             <Send className="h-4 w-4" />
           </Button>
         </div>

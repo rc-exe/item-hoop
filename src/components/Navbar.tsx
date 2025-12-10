@@ -17,7 +17,7 @@ const Navbar = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage = location.pathname === "/";
+  const hideSearchBar = location.pathname === "/" || location.pathname === "/dashboard" || location.pathname === "/messages";
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,8 +36,8 @@ const Navbar = () => {
             <span className="text-xl font-bold text-foreground">BarterHub</span>
           </Link>
 
-          {/* Search Bar - Hidden on home page */}
-          {!isHomePage && (
+          {/* Search Bar - Hidden on certain pages */}
+          {!hideSearchBar && (
             <div className="hidden md:flex flex-1 max-w-md mx-8">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -129,8 +129,8 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Search - Hidden on home page */}
-        {!isHomePage && (
+        {/* Mobile Search - Hidden on certain pages */}
+        {!hideSearchBar && (
           <div className="md:hidden mt-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
