@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Eye, Package, Star, TrendingUp, Users, Bell } from 'lucide-react';
+import { Calendar, Eye, Package, Star, TrendingUp, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ExchangeManagement } from '@/components/ExchangeManagement';
-import { NotificationDropdown } from '@/components/NotificationDropdown';
 
 interface DashboardStats {
   totalItems: number;
@@ -151,12 +150,9 @@ export const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">Manage your items and exchanges</p>
-          </div>
-          <NotificationDropdown onUpdate={fetchDashboardData} />
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
+          <p className="text-muted-foreground">Manage your items and exchanges</p>
         </div>
 
         {/* Stats Cards */}

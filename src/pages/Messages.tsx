@@ -178,6 +178,9 @@ export const Messages = () => {
           .eq('receiver_id', user.id)
           .eq('is_read', false);
 
+        // Scroll to bottom after messages load
+        setTimeout(() => scrollToBottom(), 100);
+
       } catch (error) {
         console.error('Error fetching messages:', error);
       } finally {
