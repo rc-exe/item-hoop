@@ -358,8 +358,8 @@ export const Messages = () => {
                           )}
                         </p>
                         {conversation.unread_count > 0 && (
-                          <Badge className="h-5 w-5 flex items-center justify-center rounded-full text-xs p-0 flex-shrink-0">
-                            {conversation.unread_count}
+                          <Badge className="min-w-5 h-5 flex items-center justify-center rounded-full text-xs px-1.5 flex-shrink-0">
+                            {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
                           </Badge>
                         )}
                       </div>
