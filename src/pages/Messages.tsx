@@ -199,6 +199,13 @@ export const Messages = () => {
           .eq('receiver_id', user.id)
           .eq('is_read', false);
 
+        // Reset unread count in conversations state
+        setConversations(prev => prev.map(conv => 
+          conv.other_user.id === selectedChat.other_user.id 
+            ? { ...conv, unread_count: 0 } 
+            : conv
+        ));
+
         // Scroll to bottom after messages load
         setTimeout(() => scrollToBottom(), 100);
 
