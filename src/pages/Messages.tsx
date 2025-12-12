@@ -54,6 +54,16 @@ export const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleSelectChat = (conversation: Conversation) => {
+    // Immediately reset unread count in UI
+    setConversations(prev => prev.map(conv => 
+      conv.other_user.id === conversation.other_user.id 
+        ? { ...conv, unread_count: 0 } 
+        : conv
+    ));
+    setSelectedChat({ ...conversation, unread_count: 0 });
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -191,20 +201,13 @@ export const Messages = () => {
         if (error) throw error;
         setMessages(data || []);
 
-        // Mark messages as read
+        // Mark messages as read in database
         await supabase
           .from('messages')
           .update({ is_read: true })
           .eq('sender_id', selectedChat.other_user.id)
           .eq('receiver_id', user.id)
           .eq('is_read', false);
-
-        // Reset unread count in conversations state
-        setConversations(prev => prev.map(conv => 
-          conv.other_user.id === selectedChat.other_user.id 
-            ? { ...conv, unread_count: 0 } 
-            : conv
-        ));
 
         // Scroll to bottom after messages load
         setTimeout(() => scrollToBottom(), 100);
@@ -321,7 +324,7 @@ export const Messages = () => {
                 conversations.map((conversation) => (
                   <div
                     key={conversation.id}
-                    onClick={() => setSelectedChat(conversation)}
+                    onClick={() => handleSelectChat(conversation)}
                     className={cn(
                       "flex items-center gap-3 p-4 cursor-pointer hover:bg-accent/50 transition-colors border-b border-border/50",
                       selectedChat?.id === conversation.id && "bg-accent"
