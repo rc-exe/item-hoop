@@ -22,6 +22,11 @@ serve(async (req) => {
       }
     )
 
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     const {
       data: { user },
     } = await supabaseClient.auth.getUser()
@@ -37,6 +42,42 @@ serve(async (req) => {
     }
 
     const { receiver_id, content, exchange_id, message_type = 'text' } = await req.json()
+
+    // Check if this is a reply to calculate response time
+    const { data: lastReceivedMessage } = await supabaseClient
+      .from('messages')
+      .select('created_at, sender_id')
+      .eq('sender_id', receiver_id)
+      .eq('receiver_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // If user is replying to a message, calculate response time and update profile
+    if (lastReceivedMessage) {
+      const lastReceivedTime = new Date(lastReceivedMessage.created_at).getTime()
+      const now = Date.now()
+      const responseTimeHours = Math.round((now - lastReceivedTime) / (1000 * 60 * 60))
+      
+      // Get current profile response time to calculate average
+      const { data: currentProfile } = await serviceClient
+        .from('profiles')
+        .select('response_time_hours')
+        .eq('id', user.id)
+        .single()
+      
+      if (currentProfile) {
+        const currentResponseTime = currentProfile.response_time_hours || 24
+        // Calculate weighted average (give more weight to recent responses)
+        const newResponseTime = Math.round((currentResponseTime + responseTimeHours) / 2)
+        
+        // Update profile response time (cap at 168 hours = 1 week)
+        await serviceClient
+          .from('profiles')
+          .update({ response_time_hours: Math.min(newResponseTime, 168) })
+          .eq('id', user.id)
+      }
+    }
 
     // Get or create conversation
     const { data: conversationData, error: conversationError } = await supabaseClient
@@ -93,11 +134,11 @@ serve(async (req) => {
       .eq('id', conversation_id)
 
     // Create notification for the receiver
-    await supabaseClient
+    await serviceClient
       .from('notifications')
       .insert({
         user_id: receiver_id,
-        type: 'message',
+        type: 'item_inquiry',
         title: 'New Message',
         content: `You have a new message: ${content.slice(0, 50)}${content.length > 50 ? '...' : ''}`,
         related_id: message.id

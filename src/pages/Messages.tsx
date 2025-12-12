@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface Conversation {
   id: string;
@@ -70,8 +71,23 @@ export const Messages = () => {
 
         if (convError) throw convError;
 
+        // Group conversations by unique user (not by exchange)
+        const userConversationMap = new Map<string, typeof convData[0]>();
+        
+        (convData || []).forEach((conv) => {
+          const otherUserId = conv.participant_1_id === user.id 
+            ? conv.participant_2_id 
+            : conv.participant_1_id;
+          
+          // Keep the most recent conversation per user
+          if (!userConversationMap.has(otherUserId) || 
+              new Date(conv.last_message_at || 0) > new Date(userConversationMap.get(otherUserId)!.last_message_at || 0)) {
+            userConversationMap.set(otherUserId, conv);
+          }
+        });
+
         const conversationsWithProfiles = await Promise.all(
-          (convData || []).map(async (conv) => {
+          Array.from(userConversationMap.values()).map(async (conv) => {
             const otherUserId = conv.participant_1_id === user.id 
               ? conv.participant_2_id 
               : conv.participant_1_id;
@@ -82,6 +98,7 @@ export const Messages = () => {
               .eq('id', otherUserId)
               .single();
 
+            // Get total unread count from all messages from this user
             const { count } = await supabase
               .from('messages')
               .select('*', { count: 'exact', head: true })
@@ -89,23 +106,27 @@ export const Messages = () => {
               .eq('receiver_id', user.id)
               .eq('is_read', false);
 
-            let lastMessage = null;
-            if (conv.last_message_id) {
-              const { data: msgData } = await supabase
-                .from('messages')
-                .select('content, sender_id')
-                .eq('id', conv.last_message_id)
-                .single();
-              lastMessage = msgData;
-            }
+            // Get the latest message between these two users
+            const { data: lastMsgData } = await supabase
+              .from('messages')
+              .select('content, sender_id')
+              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
             return {
               ...conv,
               other_user: profile || { id: otherUserId, username: 'Unknown', avatar_url: '' },
               unread_count: count || 0,
-              last_message: lastMessage
+              last_message: lastMsgData
             };
           })
+        );
+
+        // Sort by last message time
+        conversationsWithProfiles.sort((a, b) => 
+          new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()
         );
 
         setConversations(conversationsWithProfiles);
@@ -299,18 +320,27 @@ export const Messages = () => {
                       selectedChat?.id === conversation.id && "bg-accent"
                     )}
                   >
-                    <Avatar className="h-12 w-12 flex-shrink-0">
-                      <AvatarImage src={conversation.other_user.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {conversation.other_user.username?.charAt(0)?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <Link 
+                      to={`/profile/${conversation.other_user.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Avatar className="h-12 w-12 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
+                        <AvatarImage src={conversation.other_user.avatar_url || undefined} />
+                        <AvatarFallback>
+                          {conversation.other_user.username?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium truncate">
+                        <Link 
+                          to={`/profile/${conversation.other_user.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium truncate hover:underline"
+                        >
                           {conversation.other_user.username || 'Unknown User'}
-                        </h3>
+                        </Link>
                         <span className="text-xs text-muted-foreground flex-shrink-0">
                           {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })}
                         </span>
@@ -357,14 +387,21 @@ export const Messages = () => {
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedChat.other_user.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {selectedChat.other_user.username?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Link to={`/profile/${selectedChat.other_user.id}`}>
+                    <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                      <AvatarImage src={selectedChat.other_user.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {selectedChat.other_user.username?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
                   <div>
-                    <h2 className="font-semibold">{selectedChat.other_user.username || 'Unknown User'}</h2>
+                    <Link 
+                      to={`/profile/${selectedChat.other_user.id}`}
+                      className="font-semibold hover:underline cursor-pointer"
+                    >
+                      {selectedChat.other_user.username || 'Unknown User'}
+                    </Link>
                   </div>
                 </div>
 

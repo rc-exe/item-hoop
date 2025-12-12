@@ -123,6 +123,7 @@ export const useProfile = (userId?: string) => {
           )
         `)
         .eq('user_id', targetUserId)
+        .neq('status', 'exchanged') // Exclude exchanged items from profile items list
         .order('created_at', { ascending: false });
 
       if (error) throw error;
