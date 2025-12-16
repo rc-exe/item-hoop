@@ -333,6 +333,7 @@ export type Database = {
           id: string
           is_read: boolean | null
           message_type: string | null
+          read_at: string | null
           receiver_id: string
           sender_id: string
           updated_at: string
@@ -344,6 +345,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message_type?: string | null
+          read_at?: string | null
           receiver_id: string
           sender_id: string
           updated_at?: string
@@ -355,6 +357,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message_type?: string | null
+          read_at?: string | null
           receiver_id?: string
           sender_id?: string
           updated_at?: string
