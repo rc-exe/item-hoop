@@ -80,6 +80,83 @@ export const useProfile = (userId?: string) => {
     };
 
     loadData();
+
+    // Real-time subscriptions
+    if (!targetUserId) return;
+
+    const profileChannel = supabase
+      .channel(`profile-${targetUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${targetUserId}`
+        },
+        () => {
+          fetchProfile();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'items',
+          filter: `user_id=eq.${targetUserId}`
+        },
+        () => {
+          fetchUserItems();
+          fetchUserActivity();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'exchanges'
+        },
+        () => {
+          fetchProfile();
+          fetchUserActivity();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'exchange_ratings'
+        },
+        () => {
+          fetchProfile();
+          fetchUserActivity();
+        }
+      )
+      .subscribe();
+
+    const favoritesChannel = supabase
+      .channel(`favorites-${targetUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'favorites',
+          filter: `user_id=eq.${targetUserId}`
+        },
+        () => {
+          fetchFavorites();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileChannel);
+      supabase.removeChannel(favoritesChannel);
+    };
   }, [targetUserId]);
 
   const fetchProfile = async () => {
