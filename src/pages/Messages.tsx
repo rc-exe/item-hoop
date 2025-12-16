@@ -204,7 +204,7 @@ export const Messages = () => {
         // Mark messages as read in database
         await supabase
           .from('messages')
-          .update({ is_read: true })
+          .update({ is_read: true, read_at: new Date().toISOString() })
           .eq('sender_id', selectedChat.other_user.id)
           .eq('receiver_id', user.id)
           .eq('is_read', false);
