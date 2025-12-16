@@ -24,7 +24,10 @@ const Navbar = () => {
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setUnreadMessages(0);
+      return;
+    }
 
     const fetchUnreadCount = async () => {
       const { count, error } = await supabase
@@ -40,15 +43,33 @@ const Navbar = () => {
 
     fetchUnreadCount();
 
-    // Real-time subscription for messages
-    const channel = supabase
-      .channel('navbar-messages')
+    // Real-time subscription for new messages (INSERT)
+    const insertChannel = supabase
+      .channel(`navbar-messages-insert-${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
-          table: 'messages'
+          table: 'messages',
+          filter: `receiver_id=eq.${user.id}`
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for read status updates (UPDATE)
+    const updateChannel = supabase
+      .channel(`navbar-messages-update-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${user.id}`
         },
         () => {
           fetchUnreadCount();
@@ -57,7 +78,8 @@ const Navbar = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(insertChannel);
+      supabase.removeChannel(updateChannel);
     };
   }, [user]);
 
