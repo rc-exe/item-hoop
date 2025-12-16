@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Search, User, Plus, Bell, LogOut, MessageCircle } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -18,6 +21,45 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const hideSearchBar = location.pathname === "/" || location.pathname === "/dashboard" || location.pathname === "/messages";
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnreadCount = async () => {
+      const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', user.id)
+        .eq('is_read', false);
+
+      if (!error) {
+        setUnreadMessages(count || 0);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Real-time subscription for messages
+    const channel = supabase
+      .channel('navbar-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -59,8 +101,13 @@ const Navbar = () => {
                 <NotificationDropdown />
                 
                 <Link to="/messages">
-                  <Button variant="ghost" size="sm" className="hidden md:flex">
+                  <Button variant="ghost" size="sm" className="hidden md:flex relative">
                     <MessageCircle className="w-4 h-4" />
+                    {unreadMessages > 0 && (
+                      <Badge className="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center rounded-full text-[10px] px-1">
+                        {unreadMessages > 99 ? '99+' : unreadMessages}
+                      </Badge>
+                    )}
                   </Button>
                 </Link>
                 
