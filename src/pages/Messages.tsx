@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 interface Conversation {
   id: string;
@@ -42,12 +42,14 @@ interface Message {
 export const Messages = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -63,6 +65,68 @@ export const Messages = () => {
     ));
     setSelectedChat({ ...conversation, unread_count: 0 });
   };
+
+  // Check for userId param to auto-select or create conversation
+  useEffect(() => {
+    const userIdParam = searchParams.get('userId');
+    if (userIdParam && user && userIdParam !== user.id) {
+      setPendingUserId(userIdParam);
+      // Clear the URL param after processing
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, user, setSearchParams]);
+
+  // Handle pending userId after conversations are loaded
+  useEffect(() => {
+    if (!pendingUserId || loading || !user) return;
+
+    const handlePendingUser = async () => {
+      // Check if conversation already exists
+      const existingConversation = conversations.find(
+        conv => conv.other_user.id === pendingUserId
+      );
+
+      if (existingConversation) {
+        handleSelectChat(existingConversation);
+        setPendingUserId(null);
+        return;
+      }
+
+      // Create new conversation entry for this user
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .eq('id', pendingUserId)
+          .single();
+
+        if (profile) {
+          const newConversation: Conversation = {
+            id: `new-${pendingUserId}`,
+            participant_1_id: user.id,
+            participant_2_id: pendingUserId,
+            last_message_at: new Date().toISOString(),
+            other_user: {
+              id: profile.id,
+              username: profile.username || 'Unknown',
+              avatar_url: profile.avatar_url || ''
+            },
+            unread_count: 0,
+            last_message: undefined
+          };
+          
+          setConversations(prev => [newConversation, ...prev]);
+          handleSelectChat(newConversation);
+        }
+      } catch (error) {
+        console.error('Error creating conversation for user:', error);
+      }
+      
+      setPendingUserId(null);
+    };
+
+    handlePendingUser();
+  }, [pendingUserId, loading, conversations, user]);
 
   useEffect(() => {
     scrollToBottom();

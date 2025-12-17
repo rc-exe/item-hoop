@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Star, Calendar, MapPin, Package, ArrowUpDown, MessageSquare, Settings, Eye, Clock, Users, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import Navbar from "@/components/Navbar";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
@@ -18,10 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 const Profile = () => {
   const { userId } = useParams();
   const { user } = useAuth();
-  const { profile, items, favorites, activity, loading, error, refreshData } = useProfile(userId);
+  const { profile, items, favorites, activity, reviews, exchangedItems, loading, error, refreshData } = useProfile(userId);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  const isOwnProfile = !userId; // If no userId in URL, it's the current user's profile
+  const isOwnProfile = !userId;
 
   const handleDeleteItem = async (itemId: string) => {
     try {
@@ -45,6 +46,12 @@ const Profile = () => {
         description: "Failed to delete item. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleMessageClick = () => {
+    if (profile?.id) {
+      navigate(`/messages?userId=${profile.id}`);
     }
   };
 
@@ -193,7 +200,7 @@ const Profile = () => {
                   <ProfileEditDialog />
                 ) : (
                   <>
-                    <Button>
+                    <Button onClick={handleMessageClick}>
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Message
                     </Button>
@@ -214,7 +221,7 @@ const Profile = () => {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="items">Items ({items.length})</TabsTrigger>
             <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -360,12 +367,62 @@ const Profile = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    Reviews will appear here after completed exchanges
-                  </p>
-                </div>
+                {reviews.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      No reviews yet
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="flex gap-4 p-4 bg-muted rounded-lg">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={review.otherUser?.avatar_url || ""} />
+                          <AvatarFallback>
+                            {review.otherUser?.full_name?.charAt(0)?.toUpperCase() || 
+                             review.otherUser?.username?.charAt(0)?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <Link 
+                                to={`/profile/${review.otherUser?.id}`}
+                                className="font-medium hover:underline"
+                              >
+                                {review.otherUser?.full_name || review.otherUser?.username || "Anonymous"}
+                              </Link>
+                              <Badge variant={review.type === 'received' ? 'default' : 'secondary'}>
+                                {review.type === 'received' ? 'Received' : 'Given'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {review.exchangeItem && (
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Exchange: {review.exchangeItem}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {review.comment || "No comment provided"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {format(new Date(review.created_at), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -377,37 +434,81 @@ const Profile = () => {
                 <CardDescription>Latest exchanges and interactions</CardDescription>
               </CardHeader>
               <CardContent>
-                {activity.length === 0 ? (
+                {activity.length === 0 && exchangedItems.length === 0 ? (
                   <div className="text-center py-8">
                     <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">No recent activity</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {activity.map((activityItem) => (
-                      <div key={activityItem.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                        {activityItem.type === 'item_listed' && (
-                          <Package className="w-5 h-5 text-primary flex-shrink-0" />
-                        )}
-                        {activityItem.type === 'exchange_completed' && (
-                          <ArrowUpDown className="w-5 h-5 text-success flex-shrink-0" />
-                        )}
-                        {activityItem.type === 'review_received' && (
-                          <Star className="w-5 h-5 text-warning flex-shrink-0" />
-                        )}
-                        {activityItem.type === 'exchange_requested' && (
-                          <MessageSquare className="w-5 h-5 text-accent flex-shrink-0" />
-                        )}
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{activityItem.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{activityItem.description}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(activityItem.created_at), "MMM d, yyyy 'at' h:mm a")}
-                          </p>
+                  <div className="space-y-6">
+                    {/* Exchanged Items Section */}
+                    {exchangedItems.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                          <ArrowUpDown className="w-4 h-4" />
+                          Successfully Exchanged Items
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {exchangedItems.map((item) => (
+                            <div key={item.id} className="flex gap-3 p-3 bg-muted rounded-lg">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-background flex-shrink-0">
+                                {item.images.length > 0 ? (
+                                  <img 
+                                    src={item.images[0]} 
+                                    alt={item.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="w-6 h-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{item.title}</p>
+                                <p className="text-xs text-muted-foreground">{item.category?.name || "Uncategorized"}</p>
+                                <Badge variant="secondary" className="mt-1 text-xs">
+                                  Exchanged
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Activity Timeline */}
+                    {activity.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          Recent Activity
+                        </h3>
+                        <div className="space-y-3">
+                          {activity.map((activityItem) => (
+                            <div key={activityItem.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                              {activityItem.type === 'item_listed' && (
+                                <Package className="w-5 h-5 text-primary flex-shrink-0" />
+                              )}
+                              {activityItem.type === 'exchange_completed' && (
+                                <ArrowUpDown className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              )}
+                              {activityItem.type === 'exchange_requested' && (
+                                <MessageSquare className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                              )}
+                              
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{activityItem.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">{activityItem.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(activityItem.created_at), "MMM d, yyyy 'at' h:mm a")}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
