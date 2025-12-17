@@ -88,7 +88,12 @@ serve(async (req) => {
       )
     }
 
-    // Create notification for the requester
+    // Create notification for the requester using service role to bypass RLS
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     const notificationTitle = action === 'accept' 
       ? 'Exchange Request Accepted!'
       : 'Exchange Request Declined'
@@ -97,7 +102,7 @@ serve(async (req) => {
       ? 'Your exchange request has been accepted. You can now coordinate the exchange.'
       : 'Your exchange request has been declined.'
 
-    await supabaseClient
+    await serviceClient
       .from('notifications')
       .insert({
         user_id: exchange.requester_id,
