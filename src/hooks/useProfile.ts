@@ -42,6 +42,22 @@ export interface UserActivity {
   description: string;
   created_at: string;
   related_id: string | null;
+  item?: UserItem;
+}
+
+export interface UserReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  type: 'given' | 'received';
+  otherUser: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  } | null;
+  exchangeItem: string | null;
 }
 
 export const useProfile = (userId?: string) => {
@@ -50,6 +66,8 @@ export const useProfile = (userId?: string) => {
   const [items, setItems] = useState<UserItem[]>([]);
   const [favorites, setFavorites] = useState<UserItem[]>([]);
   const [activity, setActivity] = useState<UserActivity[]>([]);
+  const [reviews, setReviews] = useState<UserReview[]>([]);
+  const [exchangedItems, setExchangedItems] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,8 +87,10 @@ export const useProfile = (userId?: string) => {
         await Promise.all([
           fetchProfile(),
           fetchUserItems(),
+          fetchExchangedItems(),
           fetchUserActivity(),
-          fetchFavorites()
+          fetchFavorites(),
+          fetchReviews()
         ]);
       } catch (err) {
         console.error('Error loading profile data:', err);
@@ -108,6 +128,7 @@ export const useProfile = (userId?: string) => {
         },
         () => {
           fetchUserItems();
+          fetchExchangedItems();
           fetchUserActivity();
         }
       )
@@ -120,6 +141,7 @@ export const useProfile = (userId?: string) => {
         },
         () => {
           fetchProfile();
+          fetchExchangedItems();
           fetchUserActivity();
         }
       )
@@ -132,6 +154,7 @@ export const useProfile = (userId?: string) => {
         },
         () => {
           fetchProfile();
+          fetchReviews();
           fetchUserActivity();
         }
       )
@@ -200,7 +223,7 @@ export const useProfile = (userId?: string) => {
           )
         `)
         .eq('user_id', targetUserId)
-        .neq('status', 'exchanged') // Exclude exchanged items from profile items list
+        .neq('status', 'exchanged')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -214,6 +237,45 @@ export const useProfile = (userId?: string) => {
     } catch (err) {
       console.error('Items fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch items');
+    }
+  };
+
+  const fetchExchangedItems = async () => {
+    if (!targetUserId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          id,
+          title,
+          description,
+          condition,
+          estimated_value,
+          status,
+          images,
+          views_count,
+          is_featured,
+          created_at,
+          categories:category_id (
+            name,
+            icon
+          )
+        `)
+        .eq('user_id', targetUserId)
+        .eq('status', 'exchanged')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const formattedItems: UserItem[] = (data || []).map(item => ({
+        ...item,
+        category: item.categories || null
+      }));
+      
+      setExchangedItems(formattedItems);
+    } catch (err) {
+      console.error('Exchanged items fetch error:', err);
     }
   };
 
@@ -262,19 +324,103 @@ export const useProfile = (userId?: string) => {
     }
   };
 
+  const fetchReviews = async () => {
+    if (!targetUserId) return;
+    
+    try {
+      // Get reviews received
+      const { data: receivedReviews } = await supabase
+        .from('exchange_ratings')
+        .select(`
+          id,
+          rating,
+          comment,
+          created_at,
+          rater_id,
+          rater:rater_id (
+            id,
+            full_name,
+            username,
+            avatar_url
+          ),
+          exchanges:exchange_id (
+            owner_items:owner_item_id (title)
+          )
+        `)
+        .eq('rated_id', targetUserId)
+        .order('created_at', { ascending: false });
+
+      // Get reviews given
+      const { data: givenReviews } = await supabase
+        .from('exchange_ratings')
+        .select(`
+          id,
+          rating,
+          comment,
+          created_at,
+          rated_id,
+          rated:rated_id (
+            id,
+            full_name,
+            username,
+            avatar_url
+          ),
+          exchanges:exchange_id (
+            owner_items:owner_item_id (title)
+          )
+        `)
+        .eq('rater_id', targetUserId)
+        .order('created_at', { ascending: false });
+
+      const formattedReviews: UserReview[] = [];
+
+      receivedReviews?.forEach((review: any) => {
+        formattedReviews.push({
+          id: review.id,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: review.created_at,
+          type: 'received',
+          otherUser: review.rater || null,
+          exchangeItem: review.exchanges?.owner_items?.title || null
+        });
+      });
+
+      givenReviews?.forEach((review: any) => {
+        formattedReviews.push({
+          id: review.id,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: review.created_at,
+          type: 'given',
+          otherUser: review.rated || null,
+          exchangeItem: review.exchanges?.owner_items?.title || null
+        });
+      });
+
+      // Sort by date
+      formattedReviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setReviews(formattedReviews);
+    } catch (err) {
+      console.error('Reviews fetch error:', err);
+    }
+  };
+
   const fetchUserActivity = async () => {
     if (!targetUserId) return;
     
     try {
-      // Get recent items listed
+      // Get recent items listed (excluding exchanged)
       const { data: recentItems } = await supabase
         .from('items')
         .select('id, title, created_at')
         .eq('user_id', targetUserId)
+        .neq('status', 'exchanged')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Get recent exchanges
+      // Get recent completed exchanges
       const { data: recentExchanges } = await supabase
         .from('exchanges')
         .select(`
@@ -290,25 +436,7 @@ export const useProfile = (userId?: string) => {
         .or(`requester_id.eq.${targetUserId},owner_id.eq.${targetUserId}`)
         .eq('status', 'completed')
         .order('updated_at', { ascending: false })
-        .limit(3);
-
-      // Get recent ratings
-      const { data: recentRatings } = await supabase
-        .from('exchange_ratings')
-        .select(`
-          id,
-          rating,
-          comment,
-          created_at,
-          exchanges:exchange_id (
-            requester_id,
-            owner_id,
-            owner_items:owner_item_id (title)
-          )
-        `)
-        .eq('rated_id', targetUserId)
-        .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(5);
 
       // Format activity data
       const activities: UserActivity[] = [];
@@ -340,22 +468,10 @@ export const useProfile = (userId?: string) => {
         });
       });
 
-      // Add received reviews
-      recentRatings?.forEach((rating: any) => {
-        activities.push({
-          id: `review_${rating.id}`,
-          type: 'review_received',
-          title: `Received ${rating.rating}-star review`,
-          description: rating.comment || 'No comment provided',
-          created_at: rating.created_at,
-          related_id: rating.id
-        });
-      });
-
       // Sort all activities by date
       activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      setActivity(activities.slice(0, 10)); // Limit to 10 most recent
+      setActivity(activities.slice(0, 10));
     } catch (err) {
       console.error('Activity fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch activity');
@@ -372,8 +488,10 @@ export const useProfile = (userId?: string) => {
       await Promise.all([
         fetchProfile(),
         fetchUserItems(),
+        fetchExchangedItems(),
         fetchUserActivity(),
-        fetchFavorites()
+        fetchFavorites(),
+        fetchReviews()
       ]);
     } catch (err) {
       console.error('Error refreshing profile data:', err);
@@ -387,6 +505,8 @@ export const useProfile = (userId?: string) => {
     items,
     favorites,
     activity,
+    reviews,
+    exchangedItems,
     loading,
     error,
     refreshData
