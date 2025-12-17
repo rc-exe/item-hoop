@@ -111,8 +111,13 @@ serve(async (req) => {
       )
     }
 
-    // Create notification for the owner
-    await supabaseClient
+    // Create notification for the owner using service role to bypass RLS
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    await serviceClient
       .from('notifications')
       .insert({
         user_id: ownerItem.user_id,

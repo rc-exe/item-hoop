@@ -120,12 +120,23 @@ export const NotificationDropdown = ({ onUpdate }: NotificationDropdownProps) =>
     await markAsRead(notification.id);
     setOpen(false);
     
-    if (notification.type === 'exchange_request' && notification.related_id) {
-      navigate('/dashboard');
-    } else if (notification.type === 'new_message' && notification.related_id) {
-      navigate('/messages');
-    } else if (notification.type.includes('exchange') && notification.related_id) {
-      navigate('/dashboard');
+    // Navigate based on notification type
+    switch (notification.type) {
+      case 'exchange_request':
+      case 'exchange_accepted':
+      case 'exchange_rejected':
+      case 'exchange_completed':
+      case 'exchange_cancelled':
+        navigate('/dashboard');
+        break;
+      case 'new_message':
+      case 'item_inquiry':
+        navigate('/messages');
+        break;
+      default:
+        if (notification.related_id) {
+          navigate('/notifications');
+        }
     }
   };
 
@@ -169,7 +180,7 @@ export const NotificationDropdown = ({ onUpdate }: NotificationDropdownProps) =>
                   className={`p-4 cursor-pointer flex-col items-start gap-2 ${
                     !notification.is_read ? 'bg-primary/5' : ''
                   }`}
-                  onClick={() => notification.type !== 'exchange_request' && handleNotificationClick(notification)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start justify-between w-full gap-2">
                     <div className="flex-1 min-w-0">
