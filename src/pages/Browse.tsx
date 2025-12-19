@@ -31,9 +31,19 @@ const Browse = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exchangeWithUser, setExchangeWithUser] = useState<{ id: string; name: string } | null>(null);
+  
+  const exchangeWithUserId = searchParams.get("exchangeWith");
 
   useEffect(() => {
     fetchItems();
+    
+    // Fetch exchange user info if exchangeWith param exists
+    if (exchangeWithUserId) {
+      fetchExchangeUser();
+    } else {
+      setExchangeWithUser(null);
+    }
 
     // Real-time updates for items
     const itemsChannel = supabase
@@ -54,11 +64,28 @@ const Browse = () => {
     return () => {
       supabase.removeChannel(itemsChannel);
     };
-  }, []);
+  }, [exchangeWithUserId]);
+
+  const fetchExchangeUser = async () => {
+    if (!exchangeWithUserId) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, username')
+      .eq('id', exchangeWithUserId)
+      .single();
+    
+    if (data) {
+      setExchangeWithUser({
+        id: data.id,
+        name: data.full_name || data.username || 'User'
+      });
+    }
+  };
 
   const fetchItems = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('items')
         .select(`
           id,
@@ -67,6 +94,7 @@ const Browse = () => {
           images,
           location,
           created_at,
+          user_id,
           categories:category_id (
             name,
             icon
@@ -81,6 +109,13 @@ const Browse = () => {
         `)
         .eq('status', 'available')
         .order('created_at', { ascending: false });
+      
+      // Filter by user if exchangeWith param exists
+      if (exchangeWithUserId) {
+        query = query.eq('user_id', exchangeWithUserId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -148,11 +183,23 @@ const Browse = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="hero-title text-3xl lg:text-4xl text-foreground mb-4">
-            Browse Items
+            {exchangeWithUser ? `Exchange with ${exchangeWithUser.name}` : 'Browse Items'}
           </h1>
           <p className="text-lg text-muted-foreground">
-            Discover amazing items available for exchange in your area
+            {exchangeWithUser 
+              ? `Select an item from ${exchangeWithUser.name}'s collection to propose an exchange`
+              : 'Discover amazing items available for exchange in your area'
+            }
           </p>
+          {exchangeWithUser && (
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => setSearchParams({})}
+            >
+              ← Back to All Items
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
