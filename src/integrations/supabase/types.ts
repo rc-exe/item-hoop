@@ -469,6 +469,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_total_exchange_count: { Args: never; Returns: number }
       update_user_rating_stats: {
         Args: { user_id_param: string }
         Returns: undefined

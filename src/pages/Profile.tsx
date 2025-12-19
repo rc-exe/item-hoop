@@ -204,7 +204,10 @@ const Profile = () => {
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Message
                     </Button>
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline"
+                      onClick={() => navigate(`/browse?exchangeWith=${profile.id}`)}
+                    >
                       <ArrowUpDown className="w-4 h-4 mr-2" />
                       Propose Exchange
                     </Button>
@@ -218,11 +221,15 @@ const Profile = () => {
 
         {/* Profile Content */}
         <Tabs defaultValue="items" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${isOwnProfile ? 'grid-cols-4' : 'grid-cols-1'}`}>
             <TabsTrigger value="items">Items ({items.length})</TabsTrigger>
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
+            {isOwnProfile && (
+              <>
+                <TabsTrigger value="favorites">Favorites</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           <TabsContent value="items" className="space-y-6">
@@ -298,222 +305,226 @@ const Profile = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="favorites" className="space-y-6">
-            {favorites.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No favorite items yet</p>
-                  {isOwnProfile && (
+          {isOwnProfile && (
+            <TabsContent value="favorites" className="space-y-6">
+              {favorites.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No favorite items yet</p>
                     <Button asChild className="mt-4">
                       <Link to="/browse">Browse Items</Link>
                     </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {favorites.map((item) => (
+                    <Card key={item.id} className="group hover:shadow-lg transition-shadow">
+                      <Link to={`/item/${item.id}`} className="block">
+                        <CardContent className="p-4">
+                          <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted relative">
+                            {item.images.length > 0 ? (
+                              <img 
+                                src={item.images[0]} 
+                                alt={item.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <Package className="w-8 h-8 text-muted-foreground" />
+                              </div>
+                            )}
+                            <Badge 
+                              className="absolute top-2 right-2" 
+                              variant={item.status === 'available' ? 'default' : 
+                                      item.status === 'exchanged' ? 'secondary' : 'outline'}
+                            >
+                              {item.status}
+                            </Badge>
+                          </div>
+                          
+                          <h3 className="font-semibold mb-1">{item.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {item.category?.name || "Uncategorized"}
+                          </p>
+                          
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              {item.views_count} views
+                            </span>
+                            <span>{format(new Date(item.created_at), "MMM d")}</span>
+                          </div>
+                        </CardContent>
+                      </Link>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {isOwnProfile && (
+            <TabsContent value="reviews" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Reviews & Ratings</CardTitle>
+                  <CardDescription>
+                    Reviews from completed exchanges
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {reviews.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        No reviews yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map((review) => (
+                        <div key={review.id} className="flex gap-4 p-4 bg-muted rounded-lg">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={review.otherUser?.avatar_url || ""} />
+                            <AvatarFallback>
+                              {review.otherUser?.full_name?.charAt(0)?.toUpperCase() || 
+                               review.otherUser?.username?.charAt(0)?.toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <Link 
+                                  to={`/profile/${review.otherUser?.id}`}
+                                  className="font-medium hover:underline"
+                                >
+                                  {review.otherUser?.full_name || review.otherUser?.username || "Anonymous"}
+                                </Link>
+                                <Badge variant={review.type === 'received' ? 'default' : 'secondary'}>
+                                  {review.type === 'received' ? 'Received' : 'Given'}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star 
+                                    key={i} 
+                                    className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            {review.exchangeItem && (
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Exchange: {review.exchangeItem}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              {review.comment || "No comment provided"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {format(new Date(review.created_at), "MMM d, yyyy")}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favorites.map((item) => (
-                  <Card key={item.id} className="group hover:shadow-lg transition-shadow">
-                    <Link to={`/item/${item.id}`} className="block">
-                      <CardContent className="p-4">
-                        <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted relative">
-                          {item.images.length > 0 ? (
-                            <img 
-                              src={item.images[0]} 
-                              alt={item.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted">
-                              <Package className="w-8 h-8 text-muted-foreground" />
-                            </div>
-                          )}
-                          <Badge 
-                            className="absolute top-2 right-2" 
-                            variant={item.status === 'available' ? 'default' : 
-                                    item.status === 'exchanged' ? 'secondary' : 'outline'}
-                          >
-                            {item.status}
-                          </Badge>
-                        </div>
-                        
-                        <h3 className="font-semibold mb-1">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {item.category?.name || "Uncategorized"}
-                        </p>
-                        
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            {item.views_count} views
-                          </span>
-                          <span>{format(new Date(item.created_at), "MMM d")}</span>
-                        </div>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+            </TabsContent>
+          )}
 
-          <TabsContent value="reviews" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviews & Ratings</CardTitle>
-                <CardDescription>
-                  Reviews from completed exchanges
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {reviews.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      No reviews yet
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="flex gap-4 p-4 bg-muted rounded-lg">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={review.otherUser?.avatar_url || ""} />
-                          <AvatarFallback>
-                            {review.otherUser?.full_name?.charAt(0)?.toUpperCase() || 
-                             review.otherUser?.username?.charAt(0)?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <Link 
-                                to={`/profile/${review.otherUser?.id}`}
-                                className="font-medium hover:underline"
-                              >
-                                {review.otherUser?.full_name || review.otherUser?.username || "Anonymous"}
-                              </Link>
-                              <Badge variant={review.type === 'received' ? 'default' : 'secondary'}>
-                                {review.type === 'received' ? 'Received' : 'Given'}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
-                                />
-                              ))}
-                            </div>
+          {isOwnProfile && (
+            <TabsContent value="activity" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Latest exchanges and interactions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {activity.length === 0 && exchangedItems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No recent activity</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Exchanged Items Section */}
+                      {exchangedItems.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <ArrowUpDown className="w-4 h-4" />
+                            Successfully Exchanged Items
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {exchangedItems.map((item) => (
+                              <div key={item.id} className="flex gap-3 p-3 bg-muted rounded-lg">
+                                <div className="w-16 h-16 rounded-lg overflow-hidden bg-background flex-shrink-0">
+                                  {item.images.length > 0 ? (
+                                    <img 
+                                      src={item.images[0]} 
+                                      alt={item.title}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Package className="w-6 h-6 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{item.title}</p>
+                                  <p className="text-xs text-muted-foreground">{item.category?.name || "Uncategorized"}</p>
+                                  <Badge variant="secondary" className="mt-1 text-xs">
+                                    Exchanged
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          {review.exchangeItem && (
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Exchange: {review.exchangeItem}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">
-                            {review.comment || "No comment provided"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {format(new Date(review.created_at), "MMM d, yyyy")}
-                          </p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      )}
 
-          <TabsContent value="activity" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest exchanges and interactions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activity.length === 0 && exchangedItems.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No recent activity</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Exchanged Items Section */}
-                    {exchangedItems.length > 0 && (
-                      <div>
-                        <h3 className="font-semibold mb-3 flex items-center gap-2">
-                          <ArrowUpDown className="w-4 h-4" />
-                          Successfully Exchanged Items
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {exchangedItems.map((item) => (
-                            <div key={item.id} className="flex gap-3 p-3 bg-muted rounded-lg">
-                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-background flex-shrink-0">
-                                {item.images.length > 0 ? (
-                                  <img 
-                                    src={item.images[0]} 
-                                    alt={item.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Package className="w-6 h-6 text-muted-foreground" />
-                                  </div>
+                      {/* Activity Timeline */}
+                      {activity.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Recent Activity
+                          </h3>
+                          <div className="space-y-3">
+                            {activity.map((activityItem) => (
+                              <div key={activityItem.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                                {activityItem.type === 'item_listed' && (
+                                  <Package className="w-5 h-5 text-primary flex-shrink-0" />
                                 )}
+                                {activityItem.type === 'exchange_completed' && (
+                                  <ArrowUpDown className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                )}
+                                {activityItem.type === 'exchange_requested' && (
+                                  <MessageSquare className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                )}
+                                
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{activityItem.title}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{activityItem.description}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(activityItem.created_at), "MMM d, yyyy 'at' h:mm a")}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{item.title}</p>
-                                <p className="text-xs text-muted-foreground">{item.category?.name || "Uncategorized"}</p>
-                                <Badge variant="secondary" className="mt-1 text-xs">
-                                  Exchanged
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    {/* Activity Timeline */}
-                    {activity.length > 0 && (
-                      <div>
-                        <h3 className="font-semibold mb-3 flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Recent Activity
-                        </h3>
-                        <div className="space-y-3">
-                          {activity.map((activityItem) => (
-                            <div key={activityItem.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                              {activityItem.type === 'item_listed' && (
-                                <Package className="w-5 h-5 text-primary flex-shrink-0" />
-                              )}
-                              {activityItem.type === 'exchange_completed' && (
-                                <ArrowUpDown className="w-5 h-5 text-green-500 flex-shrink-0" />
-                              )}
-                              {activityItem.type === 'exchange_requested' && (
-                                <MessageSquare className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                              )}
-                              
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{activityItem.title}</p>
-                                <p className="text-xs text-muted-foreground truncate">{activityItem.description}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {format(new Date(activityItem.created_at), "MMM d, yyyy 'at' h:mm a")}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

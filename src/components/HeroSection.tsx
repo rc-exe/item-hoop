@@ -20,13 +20,12 @@ const HeroSection = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true });
       
-      // Fetch exchange count
-      const { count: exchanges } = await supabase
-        .from('exchanges')
-        .select('*', { count: 'exact', head: true });
+      // Fetch exchange count using public function (accessible to all users)
+      const { data: exchangeData } = await supabase
+        .rpc('get_total_exchange_count');
 
       setMemberCount(members || 0);
-      setExchangeCount(exchanges || 0);
+      setExchangeCount(exchangeData || 0);
     };
 
     fetchCounts();
