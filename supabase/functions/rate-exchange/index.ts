@@ -38,16 +38,39 @@ serve(async (req) => {
 
     const { exchange_id, rating, comment } = await req.json()
 
-    // Validate rating
-    if (!rating || rating < 1 || rating > 5) {
+    // Input validation
+    if (!exchange_id || typeof exchange_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Rating must be between 1 and 5' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
+        JSON.stringify({ error: 'Invalid exchange_id' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
+
+    // Validate rating
+    if (!rating || typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return new Response(
+        JSON.stringify({ error: 'Rating must be an integer between 1 and 5' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Validate comment
+    if (comment !== undefined && comment !== null) {
+      if (typeof comment !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid comment format' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+      if (comment.length > 500) {
+        return new Response(
+          JSON.stringify({ error: 'Comment must be 500 characters or less' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+    }
+
+    const sanitizedComment = comment ? comment.trim() : null
 
     // Get the exchange details
     const { data: exchange, error: exchangeError } = await supabaseClient
@@ -117,7 +140,7 @@ serve(async (req) => {
         rater_id: user.id,
         rated_id,
         rating,
-        comment
+        comment: sanitizedComment
       })
       .select()
       .single()

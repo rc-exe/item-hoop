@@ -186,6 +186,8 @@ export const useProfile = (userId?: string) => {
     if (!targetUserId) return;
     
     try {
+      const isOwnProfile = user?.id === targetUserId;
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -193,7 +195,28 @@ export const useProfile = (userId?: string) => {
         .maybeSingle();
 
       if (error) throw error;
-      setProfile(data);
+      
+      // For other profiles, exclude sensitive fields like phone
+      if (!isOwnProfile && data) {
+        const safeProfile: UserProfile = {
+          id: data.id,
+          username: data.username,
+          full_name: data.full_name,
+          bio: data.bio,
+          avatar_url: data.avatar_url,
+          location: data.location,
+          phone: null, // Explicitly hide phone for other users
+          website: data.website,
+          is_verified: data.is_verified ?? false,
+          rating: data.rating ?? 0,
+          total_exchanges: data.total_exchanges ?? 0,
+          response_time_hours: data.response_time_hours ?? 24,
+          created_at: data.created_at,
+        };
+        setProfile(safeProfile);
+      } else {
+        setProfile(data);
+      }
     } catch (err) {
       console.error('Profile fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');

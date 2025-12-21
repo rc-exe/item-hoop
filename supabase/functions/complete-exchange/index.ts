@@ -38,6 +38,30 @@ serve(async (req) => {
 
     const { exchange_id, completion_notes } = await req.json()
 
+    // Input validation
+    if (!exchange_id || typeof exchange_id !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid exchange_id' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (completion_notes && typeof completion_notes !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid completion_notes format' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (completion_notes && completion_notes.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'Completion notes must be 500 characters or less' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    const sanitizedNotes = completion_notes ? completion_notes.trim() : null
+
     // Get the exchange details
     const { data: exchange, error: exchangeError } = await supabaseClient
       .from('exchanges')
@@ -82,7 +106,7 @@ serve(async (req) => {
       .from('exchanges')
       .update({
         status: 'completed',
-        completion_notes,
+        completion_notes: sanitizedNotes,
         updated_at: new Date().toISOString()
       })
       .eq('id', exchange_id)
