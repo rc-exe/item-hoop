@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generic error messages to avoid leaking internal details
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication required',
+  INVALID_INPUT: 'Invalid request parameters',
+  NOT_FOUND: 'Item not found',
+  OWN_ITEM: 'You cannot request an exchange with your own item',
+  NOT_YOUR_ITEM: 'You can only offer your own items',
+  CREATE_FAILED: 'Failed to create exchange request',
+  SERVER_ERROR: 'An error occurred processing your request'
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -30,7 +41,7 @@ serve(async (req) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: ERROR_MESSAGES.UNAUTHORIZED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
@@ -43,14 +54,14 @@ serve(async (req) => {
     // Input validation
     if (!owner_item_id || typeof owner_item_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid owner_item_id' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
     if (requester_item_id !== undefined && requester_item_id !== null && typeof requester_item_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid requester_item_id format' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -58,7 +69,7 @@ serve(async (req) => {
     if (message !== undefined && message !== null) {
       if (typeof message !== 'string') {
         return new Response(
-          JSON.stringify({ error: 'Invalid message format' }),
+          JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
@@ -82,7 +93,7 @@ serve(async (req) => {
 
       if (!requesterItem || requesterItem.user_id !== user.id) {
         return new Response(
-          JSON.stringify({ error: 'You can only offer your own items' }),
+          JSON.stringify({ error: ERROR_MESSAGES.NOT_YOUR_ITEM }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,
@@ -100,7 +111,7 @@ serve(async (req) => {
 
     if (!ownerItem) {
       return new Response(
-        JSON.stringify({ error: 'Item not found' }),
+        JSON.stringify({ error: ERROR_MESSAGES.NOT_FOUND }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404,
@@ -111,7 +122,7 @@ serve(async (req) => {
     // Don't allow users to request exchange with their own items
     if (ownerItem.user_id === user.id) {
       return new Response(
-        JSON.stringify({ error: 'You cannot request an exchange with your own item' }),
+        JSON.stringify({ error: ERROR_MESSAGES.OWN_ITEM }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -134,8 +145,9 @@ serve(async (req) => {
       .single()
 
     if (exchangeError) {
+      console.error('Exchange insert error:', exchangeError)
       return new Response(
-        JSON.stringify({ error: exchangeError.message }),
+        JSON.stringify({ error: ERROR_MESSAGES.CREATE_FAILED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -168,8 +180,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: ERROR_MESSAGES.SERVER_ERROR }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

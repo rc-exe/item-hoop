@@ -121,6 +121,9 @@ const ListItem = () => {
     });
   };
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + selectedImages.length > 5) {
@@ -130,6 +133,26 @@ const ListItem = () => {
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate file sizes and types
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds the 10MB limit`,
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not a supported image format. Use JPEG, PNG, WebP, or GIF.`,
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Compress images

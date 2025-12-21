@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generic error messages to avoid leaking internal details
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication required',
+  INVALID_INPUT: 'Invalid request parameters',
+  NOT_FOUND: 'Resource not found',
+  FORBIDDEN: 'Access denied',
+  SERVER_ERROR: 'An error occurred processing your request',
+  SEND_FAILED: 'Failed to send message',
+  CONVERSATION_FAILED: 'Failed to create conversation'
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -33,7 +44,7 @@ serve(async (req) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: ERROR_MESSAGES.UNAUTHORIZED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
@@ -46,7 +57,7 @@ serve(async (req) => {
     // Input validation
     if (!receiver_id || typeof receiver_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid receiver_id' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -114,7 +125,7 @@ serve(async (req) => {
     if (conversationError) {
       console.error('Conversation error:', conversationError)
       return new Response(
-        JSON.stringify({ error: 'Failed to create conversation' }),
+        JSON.stringify({ error: ERROR_MESSAGES.CONVERSATION_FAILED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -140,7 +151,7 @@ serve(async (req) => {
     if (messageError) {
       console.error('Message error:', messageError)
       return new Response(
-        JSON.stringify({ error: messageError.message }),
+        JSON.stringify({ error: ERROR_MESSAGES.SEND_FAILED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -164,7 +175,7 @@ serve(async (req) => {
         user_id: receiver_id,
         type: 'item_inquiry',
         title: 'New Message',
-        content: `You have a new message: ${content.slice(0, 50)}${content.length > 50 ? '...' : ''}`,
+        content: `You have a new message: ${sanitizedContent.slice(0, 50)}${sanitizedContent.length > 50 ? '...' : ''}`,
         related_id: message.id
       })
 
@@ -179,7 +190,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: ERROR_MESSAGES.SERVER_ERROR }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
