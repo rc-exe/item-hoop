@@ -38,6 +38,38 @@ serve(async (req) => {
 
     const { exchange_id, action, message } = await req.json()
 
+    // Input validation
+    if (!exchange_id || typeof exchange_id !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid exchange_id' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (!action || !['accept', 'reject'].includes(action)) {
+      return new Response(
+        JSON.stringify({ error: 'Action must be either "accept" or "reject"' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (message !== undefined && message !== null) {
+      if (typeof message !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+      if (message.length > 500) {
+        return new Response(
+          JSON.stringify({ error: 'Message must be 500 characters or less' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+    }
+
+    const sanitizedMessage = message ? message.trim() : null
+
     // Validate that the user owns this exchange
     const { data: exchange } = await supabaseClient
       .from('exchanges')
@@ -72,7 +104,7 @@ serve(async (req) => {
       .from('exchanges')
       .update({ 
         status: newStatus,
-        ...(message && { message }) 
+        ...(sanitizedMessage && { message: sanitizedMessage }) 
       })
       .eq('id', exchange_id)
       .select()

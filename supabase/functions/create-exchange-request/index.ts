@@ -40,6 +40,38 @@ serve(async (req) => {
 
     const { owner_item_id, requester_item_id, message } = await req.json()
 
+    // Input validation
+    if (!owner_item_id || typeof owner_item_id !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid owner_item_id' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (requester_item_id !== undefined && requester_item_id !== null && typeof requester_item_id !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid requester_item_id format' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (message !== undefined && message !== null) {
+      if (typeof message !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+      if (message.length > 1000) {
+        return new Response(
+          JSON.stringify({ error: 'Message must be 1000 characters or less' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+    }
+
+    const sanitizedMessage = message ? message.trim() : null
+
     // Validate that the requester owns the requester_item (if provided)
     if (requester_item_id) {
       const { data: requesterItem } = await supabaseClient
@@ -94,8 +126,8 @@ serve(async (req) => {
         requester_id: user.id,
         owner_id: ownerItem.user_id,
         owner_item_id,
-        requester_item_id,
-        message,
+        requester_item_id: requester_item_id || null,
+        message: sanitizedMessage,
         status: 'pending'
       })
       .select()

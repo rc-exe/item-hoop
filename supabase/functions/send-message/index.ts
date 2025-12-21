@@ -43,6 +43,30 @@ serve(async (req) => {
 
     const { receiver_id, content, exchange_id, message_type = 'text' } = await req.json()
 
+    // Input validation
+    if (!receiver_id || typeof receiver_id !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid receiver_id' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Message content is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (content.length > 2000) {
+      return new Response(
+        JSON.stringify({ error: 'Message content must be 2000 characters or less' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    const sanitizedContent = content.trim()
+
     // Check if this is a reply to calculate response time
     const { data: lastReceivedMessage } = await supabaseClient
       .from('messages')
@@ -107,7 +131,7 @@ serve(async (req) => {
         sender_id: user.id,
         receiver_id,
         exchange_id,
-        content,
+        content: sanitizedContent,
         message_type
       })
       .select()
