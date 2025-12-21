@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generic error messages to avoid leaking internal details
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication required',
+  INVALID_INPUT: 'Invalid request parameters',
+  INVALID_ACTION: 'Action must be either "accept" or "reject"',
+  NOT_FOUND: 'Exchange not found or unauthorized',
+  NOT_PENDING: 'Exchange request is no longer pending',
+  UPDATE_FAILED: 'Failed to update exchange',
+  SERVER_ERROR: 'An error occurred processing your request'
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -28,7 +39,7 @@ serve(async (req) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: ERROR_MESSAGES.UNAUTHORIZED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
@@ -41,14 +52,14 @@ serve(async (req) => {
     // Input validation
     if (!exchange_id || typeof exchange_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid exchange_id' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
     if (!action || !['accept', 'reject'].includes(action)) {
       return new Response(
-        JSON.stringify({ error: 'Action must be either "accept" or "reject"' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_ACTION }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -56,7 +67,7 @@ serve(async (req) => {
     if (message !== undefined && message !== null) {
       if (typeof message !== 'string') {
         return new Response(
-          JSON.stringify({ error: 'Invalid message format' }),
+          JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
@@ -79,7 +90,7 @@ serve(async (req) => {
 
     if (!exchange || exchange.owner_id !== user.id) {
       return new Response(
-        JSON.stringify({ error: 'Exchange not found or unauthorized' }),
+        JSON.stringify({ error: ERROR_MESSAGES.NOT_FOUND }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404,
@@ -89,7 +100,7 @@ serve(async (req) => {
 
     if (exchange.status !== 'pending') {
       return new Response(
-        JSON.stringify({ error: 'Exchange request is no longer pending' }),
+        JSON.stringify({ error: ERROR_MESSAGES.NOT_PENDING }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -111,8 +122,9 @@ serve(async (req) => {
       .single()
 
     if (updateError) {
+      console.error('Exchange update error:', updateError)
       return new Response(
-        JSON.stringify({ error: updateError.message }),
+        JSON.stringify({ error: ERROR_MESSAGES.UPDATE_FAILED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -166,8 +178,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: ERROR_MESSAGES.SERVER_ERROR }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

@@ -6,6 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generic error messages to avoid leaking internal details
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication required',
+  INVALID_INPUT: 'Invalid request parameters',
+  INVALID_RATING: 'Rating must be an integer between 1 and 5',
+  NOT_FOUND: 'Exchange not found',
+  FORBIDDEN: 'Unauthorized to rate this exchange',
+  INVALID_STATUS: 'Exchange must be completed before rating',
+  ALREADY_RATED: 'You have already rated this exchange',
+  RATING_FAILED: 'Failed to submit rating',
+  SERVER_ERROR: 'An error occurred processing your request'
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -28,7 +41,7 @@ serve(async (req) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: ERROR_MESSAGES.UNAUTHORIZED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
@@ -41,7 +54,7 @@ serve(async (req) => {
     // Input validation
     if (!exchange_id || typeof exchange_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid exchange_id' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -49,7 +62,7 @@ serve(async (req) => {
     // Validate rating
     if (!rating || typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       return new Response(
-        JSON.stringify({ error: 'Rating must be an integer between 1 and 5' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_RATING }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -58,7 +71,7 @@ serve(async (req) => {
     if (comment !== undefined && comment !== null) {
       if (typeof comment !== 'string') {
         return new Response(
-          JSON.stringify({ error: 'Invalid comment format' }),
+          JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
@@ -80,8 +93,9 @@ serve(async (req) => {
       .single()
 
     if (exchangeError || !exchange) {
+      console.error('Exchange fetch error:', exchangeError)
       return new Response(
-        JSON.stringify({ error: 'Exchange not found' }),
+        JSON.stringify({ error: ERROR_MESSAGES.NOT_FOUND }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404,
@@ -92,7 +106,7 @@ serve(async (req) => {
     // Check if user is part of the exchange
     if (exchange.owner_id !== user.id && exchange.requester_id !== user.id) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized to rate this exchange' }),
+        JSON.stringify({ error: ERROR_MESSAGES.FORBIDDEN }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 403,
@@ -103,7 +117,7 @@ serve(async (req) => {
     // Check if exchange is completed
     if (exchange.status !== 'completed') {
       return new Response(
-        JSON.stringify({ error: 'Exchange must be completed before rating' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_STATUS }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -124,7 +138,7 @@ serve(async (req) => {
 
     if (existingRating) {
       return new Response(
-        JSON.stringify({ error: 'You have already rated this exchange' }),
+        JSON.stringify({ error: ERROR_MESSAGES.ALREADY_RATED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -146,8 +160,9 @@ serve(async (req) => {
       .single()
 
     if (ratingError) {
+      console.error('Rating insert error:', ratingError)
       return new Response(
-        JSON.stringify({ error: ratingError.message }),
+        JSON.stringify({ error: ERROR_MESSAGES.RATING_FAILED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -182,7 +197,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: ERROR_MESSAGES.SERVER_ERROR }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

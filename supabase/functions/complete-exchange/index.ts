@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generic error messages to avoid leaking internal details
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication required',
+  INVALID_INPUT: 'Invalid request parameters',
+  NOT_FOUND: 'Exchange not found',
+  FORBIDDEN: 'Unauthorized to complete this exchange',
+  INVALID_STATUS: 'Exchange must be accepted before completion',
+  UPDATE_FAILED: 'Failed to complete exchange',
+  SERVER_ERROR: 'An error occurred processing your request'
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -28,7 +39,7 @@ serve(async (req) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: ERROR_MESSAGES.UNAUTHORIZED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
@@ -41,14 +52,14 @@ serve(async (req) => {
     // Input validation
     if (!exchange_id || typeof exchange_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid exchange_id' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
     if (completion_notes && typeof completion_notes !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid completion_notes format' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -70,8 +81,9 @@ serve(async (req) => {
       .single()
 
     if (exchangeError || !exchange) {
+      console.error('Exchange fetch error:', exchangeError)
       return new Response(
-        JSON.stringify({ error: 'Exchange not found' }),
+        JSON.stringify({ error: ERROR_MESSAGES.NOT_FOUND }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404,
@@ -82,7 +94,7 @@ serve(async (req) => {
     // Check if user is part of the exchange
     if (exchange.owner_id !== user.id && exchange.requester_id !== user.id) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized to complete this exchange' }),
+        JSON.stringify({ error: ERROR_MESSAGES.FORBIDDEN }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 403,
@@ -93,7 +105,7 @@ serve(async (req) => {
     // Check if exchange is in accepted status
     if (exchange.status !== 'accepted') {
       return new Response(
-        JSON.stringify({ error: 'Exchange must be accepted before completion' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_STATUS }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -114,8 +126,9 @@ serve(async (req) => {
       .single()
 
     if (updateError) {
+      console.error('Exchange update error:', updateError)
       return new Response(
-        JSON.stringify({ error: updateError.message }),
+        JSON.stringify({ error: ERROR_MESSAGES.UPDATE_FAILED }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -171,7 +184,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: ERROR_MESSAGES.SERVER_ERROR }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
