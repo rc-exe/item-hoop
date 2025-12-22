@@ -64,6 +64,7 @@ const ItemDetail = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [hasExistingRequest, setHasExistingRequest] = useState(false);
 
   useEffect(() => {
     fetchItemDetails();
@@ -227,6 +228,9 @@ const ItemDetail = () => {
 
     if (!error && data) {
       setPendingExchanges(data);
+      // Check if the current user already has a pending request for this item
+      const userHasRequest = data.some(exchange => exchange.requester_id === user.id);
+      setHasExistingRequest(userHasRequest);
     }
   };
 
@@ -410,6 +414,7 @@ const ItemDetail = () => {
         description: `${item.profiles.username || item.profiles.full_name} will be notified of your interest.`,
       });
 
+      setHasExistingRequest(true);
       setIsExchangeDialogOpen(false);
       setSelectedItemId("");
       setMessage("");
@@ -575,6 +580,12 @@ const ItemDetail = () => {
             {/* Exchange Actions */}
             {user?.id !== item.user_id && (
               <div className="space-y-3">
+                {hasExistingRequest ? (
+                  <Button className="w-full" size="lg" disabled variant="secondary">
+                    <ArrowUpDown className="w-5 h-5 mr-2" />
+                    Exchange Request Sent
+                  </Button>
+                ) : (
                 <Dialog open={isExchangeDialogOpen} onOpenChange={setIsExchangeDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full" size="lg">
@@ -646,6 +657,7 @@ const ItemDetail = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                )}
               </div>
             )}
 
