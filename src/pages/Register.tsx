@@ -2,7 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -10,22 +17,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, User, Loader2, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const GOOGLE_AUTH_ENABLED = false;
+
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    agreeToTerms: false
+    agreeToTerms: false,
   });
-  const { signUp, signInWithGoogle, loading } = useAuth();
+
+  const { signUp, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const validatePassword = (password: string) => {
@@ -33,13 +44,14 @@ const Register = () => {
     const hasUpperCase = /[A-Z]/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const hasNumber = /[0-9]/.test(password);
-    
+
     return {
       hasMinLength,
       hasUpperCase,
       hasSpecialChar,
       hasNumber,
-      isValid: hasMinLength && hasUpperCase && hasSpecialChar && hasNumber
+      isValid:
+        hasMinLength && hasUpperCase && hasSpecialChar && hasNumber,
     };
   };
 
@@ -47,21 +59,21 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!passwordValidation.isValid) {
       toast({
         title: "Invalid Password",
         description: "Please meet all password requirements.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-        variant: "destructive"
+        description: "Passwords do not match.",
+        variant: "destructive",
       });
       return;
     }
@@ -69,8 +81,8 @@ const Register = () => {
     if (!formData.agreeToTerms) {
       toast({
         title: "Terms Required",
-        description: "Please agree to the terms and conditions.",
-        variant: "destructive"
+        description: "You must agree to the terms and conditions.",
+        variant: "destructive",
       });
       return;
     }
@@ -80,63 +92,54 @@ const Register = () => {
     });
 
     if (error) {
-      // Check for specific error types
-      if (error.message.toLowerCase().includes("already registered") || 
-          error.message.toLowerCase().includes("email already in use") ||
-          error.message.toLowerCase().includes("user already exists")) {
-        toast({
-          title: "Email Already in Use",
-          description: "This email is already registered. Please use a different email or try logging in.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Registration Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
 
     toast({
-      title: "Account Created!",
-      description: "Your account has been created successfully. Please log in.",
+      title: "Account Created",
+      description: "You can now log in.",
     });
-    navigate("/login");
-  };
 
-  const handleGoogleRegister = async () => {
-    await signInWithGoogle();
-    // Note: Google OAuth will redirect automatically
+    navigate("/login");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="hero-title text-3xl text-foreground mb-2">Join BarterHub</h1>
-          <p className="text-muted-foreground">Create your account and start exchanging</p>
+          <h1 className="text-3xl font-bold mb-2">Join BarterHub</h1>
+          <p className="text-muted-foreground">
+            Create your account and start exchanging
+          </p>
         </div>
 
-        <Card className="border-border/50 shadow-card">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Create Account</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">
+              Create Account
+            </CardTitle>
             <CardDescription className="text-center">
-              Fill in your details to get started
+              Sign up with email
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Google Register */}
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={handleGoogleRegister}
-              disabled={loading}
+            {/* Google Register – Coming Soon */}
+            <Button
+              variant="outline"
+              className="w-full relative cursor-not-allowed opacity-60"
+              disabled={!GOOGLE_AUTH_ENABLED}
             >
               <Mail className="w-4 h-4 mr-2" />
               Continue with Google
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] px-2 py-0.5 rounded-full bg-muted border">
+                Coming Soon
+              </span>
             </Button>
 
             <div className="relative">
@@ -144,21 +147,21 @@ const Register = () => {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or register with email</span>
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or register with email
+                </span>
               </div>
             </div>
 
-            {/* Registration Form */}
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label>Full Name</Label>
                 <div className="relative">
                   <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your full name"
                     value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("name", e.target.value)
+                    }
                     required
                     disabled={loading}
                   />
@@ -167,14 +170,14 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label>Email</Label>
                 <div className="relative">
                   <Input
-                    id="email"
                     type="email"
-                    placeholder="Enter your email"
                     value={formData.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("email", e.target.value)
+                    }
                     required
                     disabled={loading}
                   />
@@ -183,113 +186,117 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label>Password</Label>
                 <div className="relative">
                   <Input
-                    id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
                     value={formData.password}
-                    onChange={(e) => handleChange("password", e.target.value)}
-                    required
+                    onChange={(e) =>
+                      handleChange("password", e.target.value)
+                    }
                     disabled={loading}
-                    className={formData.password && !passwordValidation.isValid ? "border-destructive" : ""}
                   />
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() =>
+                      setShowPassword((v) => !v)
+                    }
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
-                
-                {/* Password Requirements */}
+
                 {formData.password && (
-                  <div className="space-y-1 mt-2 text-xs">
-                    <div className={`flex items-center gap-2 ${passwordValidation.hasMinLength ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {passwordValidation.hasMinLength ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                      <span>At least 8 characters</span>
-                    </div>
-                    <div className={`flex items-center gap-2 ${passwordValidation.hasUpperCase ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {passwordValidation.hasUpperCase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                      <span>At least 1 uppercase letter</span>
-                    </div>
-                    <div className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {passwordValidation.hasSpecialChar ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                      <span>At least 1 special character</span>
-                    </div>
-                    <div className={`flex items-center gap-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {passwordValidation.hasNumber ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                      <span>At least 1 number</span>
-                    </div>
+                  <div className="text-xs space-y-1">
+                    {[
+                      ["8 characters", passwordValidation.hasMinLength],
+                      ["Uppercase letter", passwordValidation.hasUpperCase],
+                      ["Special character", passwordValidation.hasSpecialChar],
+                      ["Number", passwordValidation.hasNumber],
+                    ].map(([label, ok]) => (
+                      <div
+                        key={label as string}
+                        className={`flex items-center gap-2 ${
+                          ok ? "text-green-600" : "text-muted-foreground"
+                        }`}
+                      >
+                        {ok ? (
+                          <Check className="w-3 h-3" />
+                        ) : (
+                          <X className="w-3 h-3" />
+                        )}
+                        {label}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label>Confirm Password</Label>
                 <div className="relative">
                   <Input
-                    id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm your password"
                     value={formData.confirmPassword}
-                    onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                    required
+                    onChange={(e) =>
+                      handleChange(
+                        "confirmPassword",
+                        e.target.value
+                      )
+                    }
                     disabled={loading}
                   />
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    disabled={loading}
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() =>
+                      setShowConfirmPassword((v) => !v)
+                    }
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
-                  id="terms"
                   checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) => handleChange("agreeToTerms", checked as boolean)}
-                  disabled={loading}
+                  onCheckedChange={(v) =>
+                    handleChange("agreeToTerms", Boolean(v))
+                  }
                 />
-                <label
-                  htmlFor="terms"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
+                <span className="text-sm">
                   I agree to the{" "}
-                  <Link to="/terms" className="text-primary hover:underline">
-                    Terms of Service
+                  <Link to="/terms" className="text-primary">
+                    Terms
                   </Link>{" "}
                   and{" "}
-                  <Link to="/privacy" className="text-primary hover:underline">
+                  <Link to="/privacy" className="text-primary">
                     Privacy Policy
                   </Link>
-                </label>
+                </span>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating Account...
+                    Creating Account…
                   </>
                 ) : (
                   "Create Account"
@@ -298,16 +305,11 @@ const Register = () => {
             </form>
           </CardContent>
 
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-sm text-center text-muted-foreground">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-primary hover:text-primary/80 transition-colors font-medium"
-              >
-                Sign in
-              </Link>
-            </div>
+          <CardFooter className="justify-center text-sm">
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary ml-1">
+              Sign in
+            </Link>
           </CardFooter>
         </Card>
       </div>
