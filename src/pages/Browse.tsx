@@ -7,9 +7,13 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Clock, SlidersHorizontal } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { MapPin, Clock, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { getStates, getCitiesForState } from "@/data/indianLocations";
 
 interface Item {
   id: string;
@@ -18,22 +22,32 @@ interface Item {
   images: string[];
   location: string | null;
   created_at: string;
+  condition: string | null;
+  estimated_value: number | null;
   categories: { name: string; icon: string | null } | null;
   profiles: { username: string | null; full_name: string | null; avatar_url: string | null; rating: number; total_exchanges: number } | null;
-  comment_count?: number;
 }
 
 const Browse = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedState, setSelectedState] = useState("all");
+  const [selectedCity, setSelectedCity] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [exchangeWithUser, setExchangeWithUser] = useState<{ id: string; name: string } | null>(null);
   
+  // More filters state
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [conditionFilter, setConditionFilter] = useState("all");
+  const [minValue, setMinValue] = useState(0);
+  const [maxValue, setMaxValue] = useState(100000);
+  
   const exchangeWithUserId = searchParams.get("exchangeWith");
+  const states = getStates();
+  const cities = selectedState !== "all" ? getCitiesForState(selectedState) : [];
 
   useEffect(() => {
     fetchItems();
@@ -95,6 +109,8 @@ const Browse = () => {
           location,
           created_at,
           user_id,
+          condition,
+          estimated_value,
           categories:category_id (
             name,
             icon
@@ -119,22 +135,7 @@ const Browse = () => {
 
       if (error) throw error;
       
-      // Fetch comment counts for each item
-      const itemsWithCounts = await Promise.all(
-        (data || []).map(async (item) => {
-          const { count } = await supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('item_id', item.id);
-          
-          return {
-            ...item,
-            comment_count: count || 0
-          };
-        })
-      );
-      
-      setItems(itemsWithCounts);
+      setItems(data || []);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -149,7 +150,25 @@ const Browse = () => {
                            (item.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
       const matchesCategory = selectedCategory === "all" || 
                              item.categories?.name.toLowerCase() === selectedCategory.toLowerCase();
-      return matchesSearch && matchesCategory;
+      
+      // Location filter
+      let matchesLocation = true;
+      if (selectedState !== "all") {
+        matchesLocation = item.location?.includes(selectedState) || false;
+        if (selectedCity !== "all") {
+          matchesLocation = item.location?.includes(selectedCity) || false;
+        }
+      }
+      
+      // Condition filter
+      const matchesCondition = conditionFilter === "all" || 
+                               item.condition?.toLowerCase() === conditionFilter.toLowerCase();
+      
+      // Value filter
+      const itemValue = item.estimated_value || 0;
+      const matchesValue = itemValue >= minValue && itemValue <= maxValue;
+      
+      return matchesSearch && matchesCategory && matchesLocation && matchesCondition && matchesValue;
     });
 
     // Sort items
@@ -157,14 +176,30 @@ const Browse = () => {
       case "oldest":
         return [...filtered].reverse();
       case "distance":
-        // In real app, would sort by actual distance
         return filtered;
       case "popular":
         return [...filtered].sort((a, b) => (b.profiles?.total_exchanges || 0) - (a.profiles?.total_exchanges || 0));
+      case "value_high":
+        return [...filtered].sort((a, b) => (b.estimated_value || 0) - (a.estimated_value || 0));
+      case "value_low":
+        return [...filtered].sort((a, b) => (a.estimated_value || 0) - (b.estimated_value || 0));
       default:
         return filtered;
     }
-  }, [items, searchTerm, selectedCategory, selectedLocation, sortBy]);
+  }, [items, searchTerm, selectedCategory, selectedState, selectedCity, sortBy, conditionFilter, minValue, maxValue]);
+
+  const handleStateChange = (state: string) => {
+    setSelectedState(state);
+    setSelectedCity("all");
+  };
+
+  const clearFilters = () => {
+    setConditionFilter("all");
+    setMinValue(0);
+    setMaxValue(100000);
+  };
+
+  const hasActiveFilters = conditionFilter !== "all" || minValue > 0 || maxValue < 100000;
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -229,24 +264,104 @@ const Browse = () => {
               </SelectContent>
             </Select>
 
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <Select value={selectedState} onValueChange={handleStateChange}>
               <SelectTrigger className="lg:w-48">
-                <SelectValue placeholder="Location" />
+                <SelectValue placeholder="State" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="sf">San Francisco, CA</SelectItem>
-                <SelectItem value="austin">Austin, TX</SelectItem>
-                <SelectItem value="seattle">Seattle, WA</SelectItem>
-                <SelectItem value="boston">Boston, MA</SelectItem>
-                <SelectItem value="la">Los Angeles, CA</SelectItem>
+              <SelectContent className="max-h-60">
+                <SelectItem value="all">All States</SelectItem>
+                {states.map((state) => (
+                  <SelectItem key={state} value={state}>{state}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <Button variant="outline" className="lg:w-auto">
-              <SlidersHorizontal className="w-4 h-4 mr-2" />
-              More Filters
-            </Button>
+            {selectedState !== "all" && (
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger className="lg:w-48">
+                  <SelectValue placeholder="City" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <Popover open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="lg:w-auto relative">
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
+                  More Filters
+                  {hasActiveFilters && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 bg-background border" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">Filters</h4>
+                    {hasActiveFilters && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters}>
+                        <X className="w-4 h-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Condition</Label>
+                    <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Any condition" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Any Condition</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="like new">Like New</SelectItem>
+                        <SelectItem value="good">Good</SelectItem>
+                        <SelectItem value="fair">Fair</SelectItem>
+                        <SelectItem value="poor">Poor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Estimated Value Range (₹)</Label>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>₹{minValue.toLocaleString()}</span>
+                      <span>-</span>
+                      <span>₹{maxValue.toLocaleString()}</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs">Min Value</Label>
+                        <Slider
+                          value={[minValue]}
+                          onValueChange={([val]) => setMinValue(val)}
+                          max={100000}
+                          step={1000}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Max Value</Label>
+                        <Slider
+                          value={[maxValue]}
+                          onValueChange={([val]) => setMaxValue(val)}
+                          max={100000}
+                          step={1000}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex items-center justify-between">
@@ -261,8 +376,9 @@ const Browse = () => {
               <SelectContent>
                 <SelectItem value="newest">Newest First</SelectItem>
                 <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="distance">Distance</SelectItem>
                 <SelectItem value="popular">Most Popular</SelectItem>
+                <SelectItem value="value_high">Value: High to Low</SelectItem>
+                <SelectItem value="value_low">Value: Low to High</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -324,11 +440,6 @@ const Browse = () => {
                           ⭐ {item.profiles?.rating || 0} ({item.profiles?.total_exchanges || 0} exchanges)
                         </span>
                       </div>
-                      {item.comment_count !== undefined && item.comment_count > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          💬 {item.comment_count}
-                        </Badge>
-                      )}
                     </div>
                   </div>
                 </CardContent>
