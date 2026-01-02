@@ -89,15 +89,15 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-background border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-background/95">
-      <div className="container mx-auto px-4 py-3">
+    <nav className="bg-background/80 border-b border-border/50 sticky top-0 z-50 backdrop-blur-xl">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">B</span>
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-glow transition-shadow duration-300">
+              <span className="text-primary-foreground font-bold text-xl">B</span>
             </div>
-            <span className="text-xl font-bold text-foreground">BarterHub</span>
+            <span className="text-2xl font-display font-bold text-foreground group-hover:text-primary transition-colors">BarterHub</span>
           </Link>
 
           {/* Search Bar - Hidden on certain pages */}
