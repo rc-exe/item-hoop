@@ -51,7 +51,12 @@ const HeroSection = () => {
     };
   }, []);
   return (
-    <section className="relative bg-gradient-to-br from-background via-muted/30 to-primary/5 py-20 lg:py-32 overflow-hidden">
+    <section className="relative bg-background py-24 lg:py-36 overflow-hidden">
+      {/* Modern gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+      
       {/* Floating Animation Elements */}
       <div className="absolute top-20 left-10 w-20 h-20 opacity-20">
         <LottieAnimation className="w-full h-full" />
@@ -60,23 +65,23 @@ const HeroSection = () => {
         <LottieAnimation className="w-full h-full" />
       </div>
       
-      <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Hero Content */}
-          <FadeInLeft className="space-y-8">
-            <div className="space-y-4">
+          <FadeInLeft className="space-y-10">
+            <div className="space-y-6">
               <motion.h1 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight"
+                className="text-5xl lg:text-7xl font-display font-bold text-foreground leading-[1.1] tracking-tight"
               >
                 Exchange Items,
                 <motion.span 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className="text-primary block bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent"
+                  className="block bg-gradient-to-r from-primary via-primary-light to-accent bg-clip-text text-transparent"
                 >
                   Build Community
                 </motion.span>
@@ -85,7 +90,7 @@ const HeroSection = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-lg text-muted-foreground max-w-lg font-sans"
+                className="text-xl text-muted-foreground max-w-lg font-sans leading-relaxed"
               >
                 Join thousands trading items without money. From books to bikes, 
                 find what you need and give what you don't. Sustainable, social, simple.
@@ -103,7 +108,7 @@ const HeroSection = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button variant="hero" size="lg" className="shadow-hero font-medium" asChild>
+                  <Button variant="hero" size="lg" className="shadow-hero font-semibold text-base px-8 py-6 rounded-xl" asChild>
                     <a href="/register">
                       Start Exchanging
                       <ArrowRight className="ml-2 w-5 h-5" />
@@ -115,7 +120,7 @@ const HeroSection = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button variant="outline" size="lg" className="font-medium" asChild>
+                <Button variant="outline" size="lg" className="font-semibold text-base px-8 py-6 rounded-xl border-2" asChild>
                   <a href="/browse">Browse Items</a>
                 </Button>
               </motion.div>
@@ -126,7 +131,7 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex items-center space-x-8 pt-8"
+              className="flex flex-wrap items-center gap-8 pt-10"
             >
               {[
                 { icon: Users, text: `${memberCount.toLocaleString()}+ Members`, delay: 0.7 },
@@ -138,10 +143,10 @@ const HeroSection = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay }}
-                  className="flex items-center space-x-2 text-muted-foreground"
+                  className="flex items-center space-x-3 text-muted-foreground bg-card/50 backdrop-blur-sm px-4 py-2 rounded-xl border border-border/50"
                 >
                   <Icon className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium">{text}</span>
+                  <span className="text-sm font-semibold">{text}</span>
                 </motion.div>
               ))}
             </motion.div>
@@ -155,11 +160,14 @@ const HeroSection = () => {
               transition={{ duration: 1, delay: 0.3 }}
               className="relative z-10"
             >
-              <img
-                src={heroImage}
-                alt="People exchanging items in a community setting"
-                className="rounded-2xl shadow-2xl w-full transform hover:scale-105 transition-transform duration-300"
-              />
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
+                <img
+                  src={heroImage}
+                  alt="People exchanging items in a community setting"
+                  className="w-full transform group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
             </motion.div>
             
             {/* Animated Decorative Elements */}

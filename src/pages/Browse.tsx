@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { MapPin, Clock, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -42,8 +41,6 @@ const Browse = () => {
   // More filters state
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [conditionFilter, setConditionFilter] = useState("all");
-  const [minValue, setMinValue] = useState(0);
-  const [maxValue, setMaxValue] = useState(100000);
   
   const exchangeWithUserId = searchParams.get("exchangeWith");
   const states = getStates();
@@ -164,11 +161,7 @@ const Browse = () => {
       const matchesCondition = conditionFilter === "all" || 
                                item.condition?.toLowerCase() === conditionFilter.toLowerCase();
       
-      // Value filter
-      const itemValue = item.estimated_value || 0;
-      const matchesValue = itemValue >= minValue && itemValue <= maxValue;
-      
-      return matchesSearch && matchesCategory && matchesLocation && matchesCondition && matchesValue;
+      return matchesSearch && matchesCategory && matchesLocation && matchesCondition;
     });
 
     // Sort items
@@ -179,14 +172,10 @@ const Browse = () => {
         return filtered;
       case "popular":
         return [...filtered].sort((a, b) => (b.profiles?.total_exchanges || 0) - (a.profiles?.total_exchanges || 0));
-      case "value_high":
-        return [...filtered].sort((a, b) => (b.estimated_value || 0) - (a.estimated_value || 0));
-      case "value_low":
-        return [...filtered].sort((a, b) => (a.estimated_value || 0) - (b.estimated_value || 0));
       default:
         return filtered;
     }
-  }, [items, searchTerm, selectedCategory, selectedState, selectedCity, sortBy, conditionFilter, minValue, maxValue]);
+  }, [items, searchTerm, selectedCategory, selectedState, selectedCity, sortBy, conditionFilter]);
 
   const handleStateChange = (state: string) => {
     setSelectedState(state);
@@ -195,11 +184,9 @@ const Browse = () => {
 
   const clearFilters = () => {
     setConditionFilter("all");
-    setMinValue(0);
-    setMaxValue(100000);
   };
 
-  const hasActiveFilters = conditionFilter !== "all" || minValue > 0 || maxValue < 100000;
+  const hasActiveFilters = conditionFilter !== "all";
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -328,37 +315,6 @@ const Browse = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Estimated Value Range (₹)</Label>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>₹{minValue.toLocaleString()}</span>
-                      <span>-</span>
-                      <span>₹{maxValue.toLocaleString()}</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <Label className="text-xs">Min Value</Label>
-                        <Slider
-                          value={[minValue]}
-                          onValueChange={([val]) => setMinValue(val)}
-                          max={100000}
-                          step={1000}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Max Value</Label>
-                        <Slider
-                          value={[maxValue]}
-                          onValueChange={([val]) => setMaxValue(val)}
-                          max={100000}
-                          step={1000}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </PopoverContent>
             </Popover>
@@ -377,8 +333,6 @@ const Browse = () => {
                 <SelectItem value="newest">Newest First</SelectItem>
                 <SelectItem value="oldest">Oldest First</SelectItem>
                 <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="value_high">Value: High to Low</SelectItem>
-                <SelectItem value="value_low">Value: Low to High</SelectItem>
               </SelectContent>
             </Select>
           </div>
