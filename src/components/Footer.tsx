@@ -1,83 +1,111 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Facebook, Twitter, Instagram, Mail } from "lucide-react";
+import { Facebook, Twitter, Instagram, Mail, ArrowRight } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-muted/50 border-t border-border">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="bg-card/50 border-t border-border backdrop-blur-sm">
+      <div className="container mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">B</span>
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow">
+                <span className="text-primary-foreground font-bold text-xl">B</span>
               </div>
-              <span className="text-xl font-bold text-foreground">BarterHub</span>
+              <span className="text-2xl font-bold text-foreground">BarterHub</span>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground leading-relaxed">
               The sustainable way to get what you need by giving what you don't. 
               Join our community of conscious exchangers.
             </p>
             <div className="flex space-x-2">
-              <Button variant="ghost" size="sm">
-                <Facebook className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Twitter className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Instagram className="w-4 h-4" />
-              </Button>
+              {[Facebook, Twitter, Instagram].map((Icon, i) => (
+                <Button 
+                  key={i}
+                  variant="ghost" 
+                  size="icon"
+                  className="w-10 h-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
+                >
+                  <Icon className="w-5 h-5" />
+                </Button>
+              ))}
             </div>
           </div>
 
           {/* Quick Links */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-foreground">Quick Links</h4>
-            <ul className="space-y-2 text-muted-foreground">
-              <li><a href="/browse" className="hover:text-primary transition-colors">Browse Items</a></li>
-              <li><a href="/list-item" className="hover:text-primary transition-colors">List an Item</a></li>
-              <li><a href="/how-it-works" className="hover:text-primary transition-colors">How It Works</a></li>
-              <li><a href="/browse" className="hover:text-primary transition-colors">Categories</a></li>
+          <div className="space-y-6">
+            <h4 className="font-semibold text-foreground text-lg">Quick Links</h4>
+            <ul className="space-y-3 text-muted-foreground">
+              {[
+                { label: "Browse Items", href: "/browse" },
+                { label: "List an Item", href: "/list-item" },
+                { label: "How It Works", href: "/how-it-works" },
+                { label: "Categories", href: "/browse" }
+              ].map((link, i) => (
+                <li key={i}>
+                  <a 
+                    href={link.href} 
+                    className="hover:text-primary transition-colors inline-flex items-center gap-1 group"
+                  >
+                    {link.label}
+                    <ArrowRight className="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Support */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-foreground">Support</h4>
-            <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Safety Tips</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Community Guidelines</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
+          <div className="space-y-6">
+            <h4 className="font-semibold text-foreground text-lg">Support</h4>
+            <ul className="space-y-3 text-muted-foreground">
+              {[
+                { label: "Help Center", href: "#" },
+                { label: "Safety Tips", href: "#" },
+                { label: "Community Guidelines", href: "#" },
+                { label: "Contact Us", href: "#" }
+              ].map((link, i) => (
+                <li key={i}>
+                  <a 
+                    href={link.href} 
+                    className="hover:text-primary transition-colors inline-flex items-center gap-1 group"
+                  >
+                    {link.label}
+                    <ArrowRight className="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Newsletter */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-foreground">Stay Updated</h4>
-            <p className="text-muted-foreground text-sm">
+          <div className="space-y-6">
+            <h4 className="font-semibold text-foreground text-lg">Stay Updated</h4>
+            <p className="text-muted-foreground text-sm leading-relaxed">
               Get notified about new items and exchange opportunities.
             </p>
             <div className="flex space-x-2">
               <Input 
                 placeholder="Enter your email" 
-                className="flex-1"
+                className="flex-1 rounded-xl border-border/50 bg-background/50 focus:border-primary"
               />
-              <Button variant="default" size="sm">
+              <Button 
+                size="icon"
+                className="rounded-xl bg-gradient-primary hover:opacity-90 transition-opacity"
+              >
                 <Mail className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-10 bg-border/50" />
 
-        <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
           <p>&copy; 2024 BarterHub. All rights reserved.</p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
+          <div className="flex items-center space-x-6">
             <a href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</a>
             <a href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</a>
           </div>
