@@ -8,7 +8,8 @@ import {
   Home, 
   Music,
   Laptop,
-  Dumbbell 
+  Dumbbell,
+  ArrowRight
 } from "lucide-react";
 import { FadeInUp } from "./ScrollAnimations";
 import { motion } from "framer-motion";
@@ -26,22 +27,22 @@ const iconMap: Record<string, any> = {
   "Sports": Dumbbell,
 };
 
-const colorMap: Record<string, string> = {
-  "Books": "text-blue-600",
-  "Electronics": "text-purple-600",
-  "Gaming": "text-green-600",
-  "Clothing": "text-pink-600",
-  "Home & Garden": "text-orange-600",
-  "Music": "text-red-600",
-  "Computers": "text-indigo-600",
-  "Sports": "text-teal-600",
+const colorMap: Record<string, { bg: string; text: string }> = {
+  "Books": { bg: "bg-blue-500/10", text: "text-blue-500" },
+  "Electronics": { bg: "bg-purple-500/10", text: "text-purple-500" },
+  "Gaming": { bg: "bg-green-500/10", text: "text-green-500" },
+  "Clothing": { bg: "bg-pink-500/10", text: "text-pink-500" },
+  "Home & Garden": { bg: "bg-orange-500/10", text: "text-orange-500" },
+  "Music": { bg: "bg-red-500/10", text: "text-red-500" },
+  "Computers": { bg: "bg-indigo-500/10", text: "text-indigo-500" },
+  "Sports": { bg: "bg-teal-500/10", text: "text-teal-500" },
 };
 
 interface CategoryWithCount {
   name: string;
   count: number;
   icon: any;
-  color: string;
+  colors: { bg: string; text: string };
 }
 
 const CategorySection = () => {
@@ -51,20 +52,11 @@ const CategorySection = () => {
   useEffect(() => {
     fetchCategories();
 
-    // Real-time updates
     const channel = supabase
       .channel('category-items-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'items'
-        },
-        () => {
-          fetchCategories();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => {
+        fetchCategories();
+      })
       .subscribe();
 
     return () => {
@@ -74,14 +66,12 @@ const CategorySection = () => {
 
   const fetchCategories = async () => {
     try {
-      // Fetch categories with item counts
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
         .select('id, name');
 
       if (categoriesError) throw categoriesError;
 
-      // Fetch item counts for each category
       const categoriesWithCounts = await Promise.all(
         (categoriesData || []).map(async (category) => {
           const { count, error } = await supabase
@@ -99,12 +89,11 @@ const CategorySection = () => {
             name: category.name,
             count: count || 0,
             icon: iconMap[category.name] || BookOpen,
-            color: colorMap[category.name] || "text-gray-600",
+            colors: colorMap[category.name] || { bg: "bg-muted", text: "text-muted-foreground" },
           };
         })
       );
 
-      // Filter out null values but keep all categories including those with 0 items
       const validCategories = categoriesWithCounts
         .filter((cat): cat is CategoryWithCount => cat !== null);
 
@@ -115,59 +104,60 @@ const CategorySection = () => {
       setLoading(false);
     }
   };
+
   if (loading) {
     return (
-      <section className="py-16 bg-muted/30">
+      <section className="py-24 section-muted">
         <div className="container mx-auto px-4">
-          <FadeInUp className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-display font-bold text-foreground mb-4">
               Browse by Category
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
-              Discover thousands of items available for exchange across popular categories
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Discover thousands of items available for exchange
             </p>
-          </FadeInUp>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Loading categories...</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-40 rounded-2xl shimmer" />
+            ))}
           </div>
         </div>
       </section>
     );
   }
 
-
   return (
-    <section className="py-16 bg-muted/30">
+    <section className="py-24 section-muted">
       <div className="container mx-auto px-4">
-        <FadeInUp className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
+        <FadeInUp className="text-center mb-16">
+          <h2 className="text-3xl lg:text-5xl font-display font-bold text-foreground mb-4">
             Browse by Category
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover thousands of items available for exchange across popular categories
           </p>
         </FadeInUp>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {categories.map((category, index) => (
-            <FadeInUp key={category.name} delay={index * 0.1}>
+            <FadeInUp key={category.name} delay={index * 0.08}>
               <motion.div
-                whileHover={{ y: -5, scale: 1.02 }}
+                whileHover={{ y: -8, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => window.location.href = `/browse?category=${category.name.toLowerCase()}`}
               >
-                <Card className="group hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border/50 h-full">
-                  <CardContent className="p-6 text-center">
-                    <div className="mb-4">
-                      <motion.div
-                        whileHover={{ rotate: 5 }}
-                        className="inline-block"
-                      >
-                        <category.icon className={`w-8 h-8 mx-auto ${category.color} group-hover:scale-110 transition-transform duration-200`} />
-                      </motion.div>
-                    </div>
-                    <h3 className="font-semibold text-foreground mb-1 font-sans">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground font-sans">{category.count} {category.count === 1 ? 'item' : 'items'}</p>
+                <Card className="glass-card-hover cursor-pointer h-full border-0 bg-card/60">
+                  <CardContent className="p-8 text-center">
+                    <motion.div
+                      whileHover={{ rotate: [0, -10, 10, 0] }}
+                      transition={{ duration: 0.5 }}
+                      className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${category.colors.bg} mb-4`}
+                    >
+                      <category.icon className={`w-8 h-8 ${category.colors.text}`} />
+                    </motion.div>
+                    <h3 className="font-semibold text-foreground text-lg mb-1">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground">{category.count} {category.count === 1 ? 'item' : 'items'}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -175,13 +165,16 @@ const CategorySection = () => {
           ))}
         </div>
 
-        <FadeInUp delay={0.3} className="text-center mt-8">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button variant="outline" size="lg" className="font-medium" onClick={() => window.location.href = '/browse'}>
+        <FadeInUp delay={0.4} className="text-center mt-12">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="font-semibold rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5"
+              onClick={() => window.location.href = '/browse'}
+            >
               View All Categories
+              <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </motion.div>
         </FadeInUp>

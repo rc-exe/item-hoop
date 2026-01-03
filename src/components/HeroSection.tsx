@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Repeat, Shield, Users } from "lucide-react";
+import { ArrowRight, Repeat, Shield, Users, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import heroImage from "@/assets/hero-exchange-minimal.jpg";
+import heroImage from "@/assets/hero-community-exchange.jpg";
 import { FadeInUp, FadeInLeft, FadeInRight } from "./ScrollAnimations";
-import LottieAnimation from "./LottieAnimation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,12 +14,10 @@ const HeroSection = () => {
 
   useEffect(() => {
     const fetchCounts = async () => {
-      // Fetch member count
       const { count: members } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
       
-      // Fetch exchange count using public function (accessible to all users)
       const { data: exchangeData } = await supabase
         .rpc('get_total_exchange_count');
 
@@ -30,7 +27,6 @@ const HeroSection = () => {
 
     fetchCounts();
 
-    // Set up realtime subscriptions
     const profilesChannel = supabase
       .channel('profiles-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
@@ -50,49 +46,62 @@ const HeroSection = () => {
       supabase.removeChannel(exchangesChannel);
     };
   }, []);
+
   return (
-    <section className="relative bg-background py-24 lg:py-36 overflow-hidden">
-      {/* Modern gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+    <section className="relative min-h-[90vh] flex items-center bg-background overflow-hidden">
+      {/* Modern mesh gradient background */}
+      <div className="absolute inset-0 bg-mesh-gradient" />
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
       
-      {/* Floating Animation Elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 opacity-20">
-        <LottieAnimation className="w-full h-full" />
-      </div>
-      <div className="absolute bottom-20 right-10 w-16 h-16 opacity-20">
-        <LottieAnimation className="w-full h-full" />
-      </div>
+      {/* Decorative elements */}
+      <motion.div 
+        animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-32 left-20 w-16 h-16 bg-primary/10 rounded-2xl backdrop-blur-sm border border-primary/20 hidden lg:flex items-center justify-center"
+      >
+        <Sparkles className="w-8 h-8 text-primary" />
+      </motion.div>
       
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 py-20">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Hero Content */}
-          <FadeInLeft className="space-y-10">
+          <FadeInLeft className="space-y-8">
             <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm"
+              >
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Sustainable Trading Platform</span>
+              </motion.div>
+              
               <motion.h1 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-5xl lg:text-7xl font-display font-bold text-foreground leading-[1.1] tracking-tight"
+                transition={{ duration: 0.8, delay: 0.1 }}
+                className="text-5xl lg:text-7xl font-display font-extrabold text-foreground leading-[1.1] tracking-tight"
               >
-                Exchange Items,
+                Trade Items,
                 <motion.span 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className="block bg-gradient-to-r from-primary via-primary-light to-accent bg-clip-text text-transparent"
+                  className="block gradient-text"
                 >
                   Build Community
                 </motion.span>
               </motion.h1>
+              
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-xl text-muted-foreground max-w-lg font-sans leading-relaxed"
+                className="text-xl text-muted-foreground max-w-lg leading-relaxed"
               >
-                Join thousands trading items without money. From books to bikes, 
+                Join thousands exchanging items without money. From books to bikes, 
                 find what you need and give what you don't. Sustainable, social, simple.
               </motion.p>
             </div>
@@ -104,11 +113,12 @@ const HeroSection = () => {
               className="flex flex-col sm:flex-row gap-4"
             >
               {!user && (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button variant="hero" size="lg" className="shadow-hero font-semibold text-base px-8 py-6 rounded-xl" asChild>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-primary text-primary-foreground font-semibold text-base px-8 py-6 rounded-2xl shadow-glow hover:shadow-accent transition-all duration-300" 
+                    asChild
+                  >
                     <a href="/register">
                       Start Exchanging
                       <ArrowRight className="ml-2 w-5 h-5" />
@@ -116,11 +126,13 @@ const HeroSection = () => {
                   </Button>
                 </motion.div>
               )}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button variant="outline" size="lg" className="font-semibold text-base px-8 py-6 rounded-xl border-2" asChild>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="font-semibold text-base px-8 py-6 rounded-2xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300" 
+                  asChild
+                >
                   <a href="/browse">Browse Items</a>
                 </Button>
               </motion.div>
@@ -131,7 +143,7 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-wrap items-center gap-8 pt-10"
+              className="flex flex-wrap items-center gap-4 pt-8"
             >
               {[
                 { icon: Users, text: `${memberCount.toLocaleString()}+ Members`, delay: 0.7 },
@@ -143,10 +155,10 @@ const HeroSection = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay }}
-                  className="flex items-center space-x-3 text-muted-foreground bg-card/50 backdrop-blur-sm px-4 py-2 rounded-xl border border-border/50"
+                  className="trust-badge"
                 >
-                  <Icon className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-semibold">{text}</span>
+                  <Icon className="w-4 h-4" />
+                  <span className="font-semibold">{text}</span>
                 </motion.div>
               ))}
             </motion.div>
@@ -155,63 +167,50 @@ const HeroSection = () => {
           {/* Hero Image */}
           <FadeInRight className="relative lg:order-last">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.3 }}
               className="relative z-10"
             >
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
+              <div className="relative rounded-3xl overflow-hidden shadow-hero group">
                 <img
                   src={heroImage}
                   alt="People exchanging items in a community setting"
-                  className="w-full transform group-hover:scale-105 transition-transform duration-500"
+                  className="w-full aspect-[16/10] object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent" />
               </div>
+              
+              {/* Floating stats card */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                className="absolute -bottom-6 -left-6 glass-card p-4 rounded-2xl hidden md:block"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
+                    <Repeat className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{exchangeCount}+</p>
+                    <p className="text-sm text-muted-foreground">Successful Trades</p>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
             
-            {/* Animated Decorative Elements */}
+            {/* Animated decorative elements */}
             <motion.div 
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.6, 0.3]
-              }}
-              transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="absolute -top-4 -right-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-8 -right-8 w-32 h-32 bg-primary/10 rounded-full blur-2xl"
             />
             <motion.div 
-              animate={{ 
-                scale: [1, 1.3, 1],
-                opacity: [0.2, 0.5, 0.2]
-              }}
-              transition={{ 
-                duration: 5, 
-                repeat: Infinity, 
-                ease: "easeInOut",
-                delay: 1
-              }}
-              className="absolute -bottom-4 -left-4 w-32 h-32 bg-accent/10 rounded-full blur-2xl"
+              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute -bottom-8 right-12 w-24 h-24 bg-accent/10 rounded-full blur-2xl"
             />
-            
-            {/* Floating Lottie Animation */}
-            <motion.div 
-              animate={{ 
-                y: [0, -10, 0],
-                rotate: [0, 5, 0]
-              }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="absolute top-1/2 -right-8 w-16 h-16 opacity-60"
-            >
-              <LottieAnimation />
-            </motion.div>
           </FadeInRight>
         </div>
       </div>
