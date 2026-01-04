@@ -16,6 +16,13 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import { Messages } from "./pages/Messages";
+import HelpCenter from "./pages/HelpCenter";
+import SafetyTips from "./pages/SafetyTips";
+import CommunityGuidelines from "./pages/CommunityGuidelines";
+import ContactUs from "./pages/ContactUs";
+import HowItWorks from "./pages/HowItWorks";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -26,12 +33,20 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <div className="animated-bg" />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/browse" element={<Browse />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/item/:id" element={<ItemDetail />} />
+            <Route path="/help-center" element={<HelpCenter />} />
+            <Route path="/safety-tips" element={<SafetyTips />} />
+            <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+            <Route path="/contact-us" element={<ContactUs />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={
