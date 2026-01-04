@@ -33,7 +33,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="animated-bg" />
+          <div className="animated-bg">
+            <div className="orb orb-1" />
+            <div className="orb orb-2" />
+            <div className="orb orb-3" />
+            <div className="orb orb-4" />
+            <div className="spotlight" />
+          </div>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/browse" element={<Browse />} />
