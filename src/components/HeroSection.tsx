@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Repeat, Shield, Users, Sparkles } from "lucide-react";
+import { ArrowRight, Repeat, Shield, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import heroImage from "@/assets/hero-community-exchange.jpg";
 import { FadeInUp, FadeInLeft, FadeInRight } from "./ScrollAnimations";
@@ -48,20 +48,10 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center bg-background overflow-hidden">
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
       {/* Modern mesh gradient background */}
-      <div className="absolute inset-0 bg-mesh-gradient" />
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
-      
-      {/* Decorative elements */}
-      <motion.div 
-        animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-32 left-20 w-16 h-16 bg-primary/10 rounded-2xl backdrop-blur-sm border border-primary/20 hidden lg:flex items-center justify-center"
-      >
-        <Sparkles className="w-8 h-8 text-primary" />
-      </motion.div>
       
       <div className="container mx-auto px-4 relative z-10 py-20">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -74,11 +64,11 @@ const HeroSection = () => {
                 transition={{ duration: 0.6 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm"
               >
-                <Sparkles className="w-4 h-4 text-primary" />
+                <Repeat className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-primary">Sustainable Trading Platform</span>
               </motion.div>
               
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.1 }}
