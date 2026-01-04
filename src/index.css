@@ -251,62 +251,139 @@
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium backdrop-blur-sm border border-primary/20;
   }
 
-  /* Animated background */
+  /* Framer-style animated background */
   .animated-bg {
     position: fixed;
     inset: 0;
     z-index: -1;
     overflow: hidden;
-    background: hsl(var(--background));
+    background: #000000;
   }
 
-  .animated-bg::before,
-  .animated-bg::after {
-    content: '';
+  .animated-bg .orb {
     position: absolute;
-    width: 600px;
-    height: 600px;
     border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.4;
-    animation: float-colors 20s ease-in-out infinite;
+    filter: blur(80px);
+    mix-blend-mode: screen;
+    animation: orb-float 25s ease-in-out infinite;
+    will-change: transform;
   }
 
-  .animated-bg::before {
-    background: linear-gradient(135deg, hsl(174 62% 40% / 0.3), hsl(185 60% 45% / 0.3));
-    top: -200px;
-    left: -200px;
+  .animated-bg .orb-1 {
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(100, 180, 255, 0.35) 0%, rgba(60, 120, 200, 0.15) 40%, transparent 70%);
+    top: -20%;
+    left: -10%;
     animation-delay: 0s;
   }
 
-  .animated-bg::after {
-    background: linear-gradient(135deg, hsl(16 85% 60% / 0.25), hsl(38 92% 50% / 0.25));
-    bottom: -200px;
-    right: -200px;
-    animation-delay: -10s;
+  .animated-bg .orb-2 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(180, 100, 255, 0.3) 0%, rgba(140, 60, 200, 0.12) 40%, transparent 70%);
+    top: 30%;
+    right: -15%;
+    animation-delay: -8s;
+    animation-duration: 30s;
   }
 
-  @keyframes float-colors {
+  .animated-bg .orb-3 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(255, 180, 100, 0.25) 0%, rgba(200, 120, 60, 0.1) 40%, transparent 70%);
+    bottom: -10%;
+    left: 20%;
+    animation-delay: -15s;
+    animation-duration: 35s;
+  }
+
+  .animated-bg .orb-4 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(100, 255, 200, 0.2) 0%, rgba(60, 200, 140, 0.08) 40%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    animation-delay: -20s;
+    animation-duration: 28s;
+  }
+
+  .animated-bg .spotlight {
+    position: absolute;
+    width: 120%;
+    height: 60%;
+    top: -30%;
+    left: -10%;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+    transform-origin: center center;
+    animation: spotlight-sweep 20s ease-in-out infinite;
+  }
+
+  @keyframes orb-float {
     0%, 100% {
-      transform: translate(0, 0) scale(1);
+      transform: translate(0, 0) scale(1) rotate(0deg);
     }
-    25% {
-      transform: translate(100px, 50px) scale(1.1);
+    20% {
+      transform: translate(80px, -60px) scale(1.1) rotate(45deg);
+    }
+    40% {
+      transform: translate(-40px, 80px) scale(0.9) rotate(90deg);
+    }
+    60% {
+      transform: translate(60px, 40px) scale(1.15) rotate(180deg);
+    }
+    80% {
+      transform: translate(-80px, -40px) scale(0.95) rotate(270deg);
+    }
+  }
+
+  @keyframes spotlight-sweep {
+    0%, 100% {
+      transform: translateX(-20%) rotate(-5deg);
+      opacity: 0.6;
     }
     50% {
-      transform: translate(50px, 100px) scale(0.95);
-    }
-    75% {
-      transform: translate(-50px, 50px) scale(1.05);
+      transform: translateX(20%) rotate(5deg);
+      opacity: 0.9;
     }
   }
 
-  .dark .animated-bg::before {
-    opacity: 0.25;
+  /* Light mode version */
+  .light .animated-bg,
+  :root:not(.dark) .animated-bg {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
   }
 
-  .dark .animated-bg::after {
-    opacity: 0.2;
+  .light .animated-bg .orb,
+  :root:not(.dark) .animated-bg .orb {
+    filter: blur(100px);
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+  }
+
+  .light .animated-bg .orb-1,
+  :root:not(.dark) .animated-bg .orb-1 {
+    background: radial-gradient(circle, rgba(14, 165, 165, 0.25) 0%, rgba(14, 165, 165, 0.08) 40%, transparent 70%);
+  }
+
+  .light .animated-bg .orb-2,
+  :root:not(.dark) .animated-bg .orb-2 {
+    background: radial-gradient(circle, rgba(180, 100, 200, 0.2) 0%, rgba(140, 60, 180, 0.08) 40%, transparent 70%);
+  }
+
+  .light .animated-bg .orb-3,
+  :root:not(.dark) .animated-bg .orb-3 {
+    background: radial-gradient(circle, rgba(230, 130, 80, 0.2) 0%, rgba(200, 100, 50, 0.08) 40%, transparent 70%);
+  }
+
+  .light .animated-bg .orb-4,
+  :root:not(.dark) .animated-bg .orb-4 {
+    background: radial-gradient(circle, rgba(14, 165, 140, 0.15) 0%, rgba(14, 165, 140, 0.05) 40%, transparent 70%);
+  }
+
+  .light .animated-bg .spotlight,
+  :root:not(.dark) .animated-bg .spotlight {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
   }
 }
 
